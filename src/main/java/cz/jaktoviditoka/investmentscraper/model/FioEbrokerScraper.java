@@ -29,6 +29,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,7 +39,7 @@ public class FioEbrokerScraper {
 
     @Autowired
     UserRepository userRepository;
-    
+
     @Autowired
     AssetRepository assetRepository;
 
@@ -62,7 +64,7 @@ public class FioEbrokerScraper {
         if (userOpt.isEmpty()) {
             throw new IllegalArgumentException("User not found.");
         }
-        
+
         List<CookieCache> cookies = cookieCacheRepository.findAll();
         if (BooleanUtils.isNotTrue(cookies.isEmpty())) {
             boolean logged = cookies.stream()
@@ -76,7 +78,7 @@ public class FioEbrokerScraper {
                 cookieCacheRepository.deleteAll();
             }
         }
-        
+
         HtmlPage loginPage = webClient.getPage(loginUrl);
         HtmlTextInput loginUserName = loginPage.getElementByName("LOGIN_USERNAME");
         HtmlPasswordInput loginPassword = loginPage.getElementByName("LOGIN_PASSWORD");
@@ -149,6 +151,7 @@ public class FioEbrokerScraper {
         List<Transaction> transactions = deposits(fioEbrokerTransactions);
         transactions.addAll(interests(fioEbrokerTransactions));
         transactions.addAll(specialFees(fioEbrokerTransactions));
+        transactions.addAll(trades(fioEbrokerTransactions));
 
         return transactions;
     }
@@ -296,35 +299,110 @@ public class FioEbrokerScraper {
     }
 
     private List<Transaction> trades(List<FioEbrokerTransaction> transactions) {
-        transactions.stream()
-                .filter(el -> Objects.nonNull(el.getType())).map(el -> {
+        return transactions.stream()
+                .filter(el -> Objects.nonNull(el.getType()))
+                .peek(el -> log.debug("FioEbrokerTransaction: {}", el))
+                .map(el -> {
                     TransactionPart transactionFrom = new TransactionPart();
-
-                    if (el.getComment().contains("Nákup")) {
-                        
-                    } else if (el.getComment().contains("Prodej")) {
-                        
-                    } else {
-                        throw new IllegalArgumentException("Unknown trade type.");
-                    }
-                    
-                    
-                    Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
-                    if (assetOpt.isPresent()) {
-                        transactionFrom.setAsset(assetOpt.get());
-                        transactionFrom.setAmount(el.getAmount().abs());
-                    } else {
-                        throw new IllegalArgumentException("Asset not found.");
-                    }
-
                     TransactionPart transactionTo = new TransactionPart();
 
-                    Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
-                    if (currencyOpt.isPresent()) {
-                        transactionTo.setAsset(currencyOpt.get());
-                        transactionTo.setAmount(el.getAmount());
+                    if (el.getComment().contains("Nákup")) {
+
+                        Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
+                        if (currencyOpt.isPresent()) {
+                            transactionFrom.setAsset(currencyOpt.get());
+                            transactionFrom.setAmount(el.getAmount().multiply(el.getPrice()));
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> feeAssetOpt = assetRepository.findByTicker(el.getFeeAsset());
+                        if (feeAssetOpt.isPresent()) {
+                            transactionFrom.setFeeAsset(feeAssetOpt.get());
+                            transactionFrom.setFeeAmount(el.getFeeAmount());
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
+                        if (assetOpt.isPresent()) {
+                            transactionTo.setAsset(assetOpt.get());
+                            transactionTo.setAmount(el.getAmount());
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                    } else if (el.getComment().contains("Prodej")) {
+
+                        Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
+                        if (assetOpt.isPresent()) {
+                            transactionFrom.setAsset(assetOpt.get());
+                            transactionFrom.setAmount(el.getAmount());
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
+                        if (currencyOpt.isPresent()) {
+                            transactionTo.setAsset(currencyOpt.get());
+                            transactionTo.setAmount(el.getAmount().multiply(el.getPrice()));
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> feeAssetOpt = assetRepository.findByTicker(el.getFeeAsset());
+                        if (feeAssetOpt.isPresent()) {
+                            transactionTo.setFeeAsset(feeAssetOpt.get());
+                            transactionTo.setFeeAmount(el.getFeeAmount());
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                    } else if (BooleanUtils.and(new Boolean[] {
+                            el.getComment().contains("Čistá cena"),
+                            el.getComment().contains("AUV") })) {
+
+                        Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
+                        if (currencyOpt.isPresent()) {
+                            transactionFrom.setAsset(currencyOpt.get());
+
+                            Pattern pricePatter = Pattern.compile("(?<=Čistá cena: )[0-9]*.[0-9]*");
+                            Matcher priceMatcher = pricePatter.matcher(el.getComment());
+                            if (priceMatcher.find()) {
+                                transactionFrom.setAmount(el.getAmount().multiply(new BigDecimal(priceMatcher.group())));
+                            } else {
+                                throw new IllegalArgumentException("Failed to parse bond trade.");
+                            }
+
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> feeAssetOpt = assetRepository.findByTicker(el.getFeeAsset());
+                        if (feeAssetOpt.isPresent()) {
+                            transactionFrom.setFeeAsset(feeAssetOpt.get());
+                            
+                            Pattern feePatter = Pattern.compile("(?<=AUV: )[0-9]*.[0-9]*");
+                            Matcher feeMatcher = feePatter.matcher(el.getComment());
+                            if (feeMatcher.find()) {
+                                transactionFrom.setFeeAmount(el.getFeeAmount().add(new BigDecimal(feeMatcher.group())));
+                            } else {
+                                throw new IllegalArgumentException("Failed to parse bond trade.");
+                            }
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
+                        Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
+                        if (assetOpt.isPresent()) {
+                            transactionTo.setAsset(assetOpt.get());
+                            transactionTo.setAmount(el.getAmount().divide(BigDecimal.valueOf(10000)));
+                        } else {
+                            throw new IllegalArgumentException("Asset not found.");
+                        }
+
                     } else {
-                        throw new IllegalArgumentException("Asset not found.");
+                        throw new IllegalArgumentException("Unknown trade type.");
                     }
 
                     Optional<Location> locationOpt = locationRepository.findByName("Fio e-Broker");
@@ -337,7 +415,7 @@ public class FioEbrokerScraper {
 
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
-                            .type(TransactionType.INTEREST)
+                            .type(TransactionType.TRADE)
                             .from(transactionFrom)
                             .to(transactionTo)
                             .comment(el.getComment())
