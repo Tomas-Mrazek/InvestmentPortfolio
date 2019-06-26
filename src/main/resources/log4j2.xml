@@ -6,6 +6,9 @@
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="org.springframework.security" level="debug" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
         <Logger name="org.hibernate.SQL" level="warn" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
