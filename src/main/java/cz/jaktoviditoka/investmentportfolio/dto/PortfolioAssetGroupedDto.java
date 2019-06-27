@@ -1,21 +1,24 @@
-package cz.jaktoviditoka.investmentportfolio.domain;
+package cz.jaktoviditoka.investmentportfolio.dto;
 
-import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
+@Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PortfolioAssetGrouped {
+public class PortfolioAssetGroupedDto {
 
-    Asset asset;
+    LocalDate date;
+    Long assetId;
     BigDecimal amount;
-    Exchange exchange;
+    Long exchangeId;
+    Long locationId;
 
 }

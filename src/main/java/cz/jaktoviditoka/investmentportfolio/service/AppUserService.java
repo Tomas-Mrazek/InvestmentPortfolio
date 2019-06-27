@@ -41,7 +41,6 @@ public class AppUserService implements UserDetailsService {
 
         List<GrantedAuthority> authorities = appUser.getRoles().stream()
                 .map(el -> new SimpleGrantedAuthority(el.name()))
-                .peek(el -> log.debug("Authority: {}", el))
                 .collect(Collectors.toList());
 
         return User.builder()
@@ -75,6 +74,10 @@ public class AppUserService implements UserDetailsService {
     
     public AppUser getUser(String username) {
         return appUserRepository.findByEmail(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+    
+    public void updateUser(AppUser user) {
+        appUserRepository.save(user);
     }
     
     public void disableUser(Long id) {

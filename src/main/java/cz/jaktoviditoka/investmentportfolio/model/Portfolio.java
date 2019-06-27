@@ -1,7 +1,8 @@
 package cz.jaktoviditoka.investmentportfolio.model;
 
-import cz.jaktoviditoka.investmentportfolio.domain.PortfolioAssetGrouped;
+import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,16 +10,20 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Component
 public class Portfolio {
 
     @Autowired
     PortfolioAssetRepository portfolioAssetRepository;
-    
+
+    @Autowired
+    AssetPriceHistoryRepository assetPriceHistoryRepository;
+
     @Autowired
     ModelMapper modelMapper;
 
@@ -48,35 +53,82 @@ public class Portfolio {
         portfolioAssetRepository.save(portfolioAsset);
     }
 
-    public void calculateValue(Long userId) {
-        List<PortfolioAsset> portfolioAssets = portfolioAssetRepository.findByUserId(userId);
+    // Seřadit transakce od nejstarších
+    // Pro každé datum
+    // Vyhledat transakce
+    // Pro každou transakci, pokud existuje
+    // zjistit, zda-li aktivum na příslušné burze a lokaci a datu existuje
+    // pokud ano, přičíst / odečíst sumu
+    // pokud ne, vytvořit objekt
+    // Pokud neexistuje, zkopírovat objekty s předešlým datem
 
-        List<LocalDate> portfolioChangeDates = portfolioAssets.stream()
+    public List<PortfolioAssetGroupedDto> calculateValue(Long userId) {
+        List<PortfolioAssetGroupedDto> portfolioPerDay = new ArrayList<>();
+        List<PortfolioAsset> portfolio = portfolioAssetRepository.findByUserId(userId);
+        portfolio.stream()
                 .map(el -> el.getDate())
-                .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList());
+                .min(Comparator.comparing(LocalDate::toEpochDay))
+                .orElseThrow()
+                .datesUntil(LocalDate.now())
+                .forEach(date -> {
+                    List<PortfolioAssetGroupedDto> newPortfolioPerDay = new ArrayList<>();
+                    portfolioPerDay.stream()
+                            .filter(ppd -> Objects.equals(ppd.getDate().plusDays(1), date))
+                            .forEach(ppd -> newPortfolioPerDay.add(PortfolioAssetGroupedDto.builder()
+                                    .date(ppd.getDate().plusDays(1))
+                                    .assetId(ppd.getAssetId())
+                                    .amount(ppd.getAmount())
+                                    .exchangeId(Objects.nonNull(ppd.getExchangeId()) ? ppd.getExchangeId() : null)
+                                    .locationId(Objects.nonNull(ppd.getLocationId()) ? ppd.getLocationId() : null)
+                                    .build()));
+                    portfolioPerDay.addAll(newPortfolioPerDay);
 
-        LocalDate date = null;
+                    if (portfolio.stream()
+                            .filter(pa -> Objects.equals(pa.getDate(), date))
+                            .count() > 0) {
+                        portfolio.stream()
+                                .filter(pa -> Objects.equals(pa.getDate(), date))
+                                .forEach(pa -> {
+                                    PortfolioAssetGroupedDto pagd = PortfolioAssetGroupedDto.builder()
+                                            .date(pa.getDate())
+                                            .assetId(pa.getAsset().getId())
+                                            .amount(pa.getAmount())
+                                            .exchangeId(
+                                                    Objects.nonNull(pa.getExchange()) ? pa.getExchange().getId() : null)
+                                            .locationId(
+                                                    Objects.nonNull(pa.getLocation()) ? pa.getLocation().getId() : null)
+                                            .build();
 
-        List<PortfolioAssetGrouped> portfolioMovements = portfolioAssets.stream()
-                .filter(el -> el.getDate().isBefore(date))
-                .map(el -> modelMapper.map(el, PortfolioAssetGrouped.class))
-                .collect(Collectors.groupingBy(
-                        PortfolioAssetGrouped::getAsset,
-                        Collectors.groupingBy(
-                                PortfolioAssetGrouped::getExchange,
-                                Collectors.reducing(
-                                        BigDecimal.ZERO,
-                                        PortfolioAssetGrouped::getAmount,
-                                        BigDecimal::add))))
-                .entrySet()
-                .stream()
-                .flatMap(e1 -> e1.getValue()
-                     .entrySet()
-                     .stream()
-                     .map(e2 -> new PortfolioAssetGrouped(e1.getKey(), e2.getValue(), e2.getKey())))
-                .collect(Collectors.toList());
+                                    if (portfolioPerDay.stream()
+                                            .filter(ppd -> Objects.equals(ppd.getDate(), pagd.getDate()))
+                                            .filter(ppd -> Objects.equals(ppd.getAssetId(), pagd.getAssetId()))
+                                            .filter(ppd -> Objects.equals(ppd.getExchangeId(), pagd.getExchangeId()))
+                                            .filter(ppd -> Objects.equals(ppd.getLocationId(), pagd.getLocationId()))
+                                            .count() == 0) {
+                                        portfolioPerDay.add(pagd);
+                                    } else if (portfolioPerDay.stream()
+                                            .filter(ppd -> Objects.equals(ppd.getDate(), pagd.getDate()))
+                                            .filter(ppd -> Objects.equals(ppd.getAssetId(), pagd.getAssetId()))
+                                            .filter(ppd -> Objects.equals(ppd.getExchangeId(), pagd.getExchangeId()))
+                                            .filter(ppd -> Objects.equals(ppd.getLocationId(), pagd.getLocationId()))
+                                            .count() == 1) {
+                                        portfolioPerDay.stream()
+                                                .filter(ppd -> Objects.equals(ppd.getDate(), pagd.getDate()))
+                                                .filter(ppd -> Objects.equals(ppd.getAssetId(), pagd.getAssetId()))
+                                                .filter(ppd -> Objects.equals(ppd.getExchangeId(),
+                                                        pagd.getExchangeId()))
+                                                .filter(ppd -> Objects.equals(ppd.getLocationId(),
+                                                        pagd.getLocationId()))
+                                                .forEach(ppd -> ppd.setAmount(ppd.getAmount().add(pagd.getAmount())));
+                                    } else {
+                                        throw new IllegalArgumentException("Portfolio error...");
+                                    }
 
+                                });
+
+                    }
+                });
+        return portfolioPerDay;
     }
 
 }

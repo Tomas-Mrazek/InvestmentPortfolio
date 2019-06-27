@@ -81,7 +81,7 @@ public class KurzyCzScraper {
                 switch (exchange.getName()) {
                 case "BCPP":
                     if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(1).text()))) {
-                        assetPriceHistory.setClosingPrice(new BigDecimal(row.child(1).text()));
+                        assetPriceHistory.setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(1).text())));
                     } else {
                         continue;
                     }
@@ -89,7 +89,7 @@ public class KurzyCzScraper {
                     break;
                 case "RMS":
                     if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(5).text()))) {
-                        assetPriceHistory.setClosingPrice(new BigDecimal(row.child(5).text()));
+                        assetPriceHistory.setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(5).text())));
                     } else {
                         continue;
                     }

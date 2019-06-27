@@ -12,6 +12,7 @@ import cz.jaktoviditoka.investmentportfolio.repository.AppUserRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.CookieCacheRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.LocationRepository;
+import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,24 +50,17 @@ public class FioEbrokerScraper {
 
     @Autowired
     ModelMapper modelMapper;
+    
+    @Autowired
+    PasswordCryptoProvider passwordCryptoProvider;
 
     WebClient webClient = new WebClient();
 
     String loginUrl = "https://www.fio.cz/e-broker/e-broker.cgi";
     String transactionsUrl = "https://www.fio.cz/e-broker/e-obchody.cgi?obchody_DAT_od=${dateFrom}&obchody_DAT_do=${dateTo}";
-
-    String username;
-    String password;
-
-    private void login() throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-        login(username, password);
-    }
-
+    
     public void login(String username, String password)
             throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-        this.username = username;
-        this.password = password;
-
         List<CookieCache> cookies = cookieCacheRepository.findAll();
         if (BooleanUtils.isNotTrue(cookies.isEmpty())) {
             boolean logged = cookies.stream()
@@ -102,8 +96,12 @@ public class FioEbrokerScraper {
             log.debug("Fio e-Broker logged.");
         }
     }
+    
+    public List<Transaction> getTransactions(AppUser user) throws IOException {      
+        return getTransactions(user.getFioEbrokerUsername(), passwordCryptoProvider.decrypt(user.getFioEbrokerPassword()), user);
+    }
 
-    public List<Transaction> getTransactions() throws IOException {
+    public List<Transaction> getTransactions(String username, String password, AppUser user) throws IOException {       
         cookieCacheRepository.findAll().stream()
                 .map(el -> new Cookie(
                         el.getDomain(),
@@ -126,7 +124,7 @@ public class FioEbrokerScraper {
             HtmlPage transactionPage = getTransactionPage(from, to);
             if (transactionPage.asXml().contains("login_table")) {
                 cookieCacheRepository.deleteAll();
-                login();
+                login(username, password);
                 transactionPage = getTransactionPage(from, to);
             }
             HtmlTable table = transactionPage.getHtmlElementById("obchody_full_table");
@@ -143,7 +141,6 @@ public class FioEbrokerScraper {
                     }
                     FioEbrokerTransaction transaction = createFioEbrokerTransaction(row);
                     fioEbrokerTransactions.add(transaction);
-                    // log.debug("FioEbrokerTransaction: {}", transaction);
                 }
             }
             from = from.minusYears(1);
@@ -154,7 +151,7 @@ public class FioEbrokerScraper {
         transactions.addAll(interests(fioEbrokerTransactions));
         transactions.addAll(specialFees(fioEbrokerTransactions));
         transactions.addAll(trades(fioEbrokerTransactions));
-
+        transactions.stream().sorted((el1, el2) -> el1.getTimestamp().compareTo(el2.getTimestamp())).forEach(el -> el.setUser(user));
         return transactions;
     }
 
@@ -286,7 +283,7 @@ public class FioEbrokerScraper {
                     if (locationOpt.isPresent()) {
                         transactionTo.setLocation(locationOpt.get());
                     } else {
-                        throw new IllegalArgumentException("Asset not found.");
+                        throw new IllegalArgumentException("Location not found.");
                     }
 
                     return Transaction.builder()
@@ -303,7 +300,6 @@ public class FioEbrokerScraper {
     private List<Transaction> trades(List<FioEbrokerTransaction> transactions) {
         return transactions.stream()
                 .filter(el -> Objects.nonNull(el.getType()))
-                .peek(el -> log.debug("FioEbrokerTransaction: {}", el))
                 .map(el -> {
                     TransactionPart transactionFrom = new TransactionPart();
                     TransactionPart transactionTo = new TransactionPart();
@@ -368,11 +364,11 @@ public class FioEbrokerScraper {
                         if (currencyOpt.isPresent()) {
                             transactionFrom.setAsset(currencyOpt.get());
 
-                            Pattern pricePatter = Pattern.compile("(?<=Čistá cena: )[0-9]*.[0-9]*");
-                            Matcher priceMatcher = pricePatter.matcher(el.getComment());
+                            Pattern pricePattern = Pattern.compile("(?<=Čistá cena: )[0-9]*.[0-9]*");
+                            Matcher priceMatcher = pricePattern.matcher(el.getComment());
                             if (priceMatcher.find()) {
                                 transactionFrom
-                                        .setAmount(el.getAmount().multiply(new BigDecimal(priceMatcher.group())));
+                                        .setAmount(el.getAmount().multiply(new BigDecimal(priceMatcher.group()).divide(BigDecimal.valueOf(100))));
                             } else {
                                 throw new IllegalArgumentException("Failed to parse bond trade.");
                             }
@@ -385,8 +381,8 @@ public class FioEbrokerScraper {
                         if (feeAssetOpt.isPresent()) {
                             transactionFrom.setFeeAsset(feeAssetOpt.get());
 
-                            Pattern feePatter = Pattern.compile("(?<=AUV: )[0-9]*.[0-9]*");
-                            Matcher feeMatcher = feePatter.matcher(el.getComment());
+                            Pattern feePattern = Pattern.compile("(?<=AUV: )[0-9]*.[0-9]*");
+                            Matcher feeMatcher = feePattern.matcher(el.getComment());
                             if (feeMatcher.find()) {
                                 transactionFrom.setFeeAmount(el.getFeeAmount().add(new BigDecimal(feeMatcher.group())));
                             } else {
@@ -399,7 +395,7 @@ public class FioEbrokerScraper {
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
                         if (assetOpt.isPresent()) {
                             transactionTo.setAsset(assetOpt.get());
-                            transactionTo.setAmount(el.getAmount().divide(BigDecimal.valueOf(10000)));
+                            transactionTo.setAmount(el.getAmount());
                         } else {
                             throw new IllegalArgumentException("Asset not found.");
                         }
@@ -487,34 +483,34 @@ public class FioEbrokerScraper {
                 }))
                 .map(el -> {
 
-                    TransactionPart transactionFrom = null;
+                    TransactionPart transactionTo = null;
                     if (Objects.nonNull(el.getAsset())) {
-                        transactionFrom = new TransactionPart();
+                        transactionTo = new TransactionPart();
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
                         if (assetOpt.isPresent()) {
-                            transactionFrom.setAsset(assetOpt.get());
-                            transactionFrom.setAmount(BigDecimal.ZERO);
+                            transactionTo.setAsset(assetOpt.get());
+                            transactionTo.setAmount(BigDecimal.ZERO);
                         } else {
                             throw new IllegalArgumentException("Asset not found.");
                         }
                     }
 
-                    TransactionPart transactionTo = new TransactionPart();
+                    TransactionPart transactionFrom = new TransactionPart();
 
                     Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                     if (currencyOpt.isPresent()) {
-                        transactionTo.setAsset(currencyOpt.get());
-                        transactionTo.setAmount(el.getTotalAmount().abs());
+                        transactionFrom.setAsset(currencyOpt.get());
+                        transactionFrom.setAmount(el.getTotalAmount().abs());
                     } else {
                         throw new IllegalArgumentException("Asset not found.");
                     }
 
                     Optional<Location> locationOpt = locationRepository.findByName("Fio e-Broker");
                     if (locationOpt.isPresent()) {
-                        if (Objects.nonNull(transactionFrom)) {
-                            transactionFrom.setLocation(locationOpt.get());
+                        if (Objects.nonNull(transactionTo)) {
+                            transactionTo.setLocation(locationOpt.get());
                         }
-                        transactionTo.setLocation(locationOpt.get());
+                        transactionFrom.setLocation(locationOpt.get());
                     } else {
                         throw new IllegalArgumentException("Asset not found.");
                     }

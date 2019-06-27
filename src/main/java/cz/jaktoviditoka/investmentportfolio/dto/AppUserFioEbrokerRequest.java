@@ -8,19 +8,12 @@ import javax.validation.constraints.NotEmpty;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AppUserRequest {
-
-    String firstName;
-
-    String lastName;
+public class AppUserFioEbrokerRequest {
 
     @NotEmpty
-    String email;
+    String username;
     
     @NotEmpty
-    CharSequence password;
+    String password;
     
-    @NotEmpty
-    CharSequence matchingPassword;
-
 }

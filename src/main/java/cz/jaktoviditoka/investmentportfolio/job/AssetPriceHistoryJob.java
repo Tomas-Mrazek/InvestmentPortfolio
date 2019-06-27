@@ -34,10 +34,14 @@ public class AssetPriceHistoryJob {
 
         for (Asset asset : assets) {
             for (Exchange exchange : asset.getExchanges()) {
-                Optional<LocalDate> minDate = portfolioAssetRepository.findMinDateByAssetAndExchange(asset, exchange);
-                if (minDate.isPresent()) {
-                    log.debug("Scraping 'asset': {} | 'exchange': {} | 'minDate': {}", asset, exchange, minDate);
-                    scraper.scrape(asset, exchange, minDate.get());
+                if (exchange.getName().contentEquals("BCPP") || exchange.getName().contentEquals("RMS")) {
+                    Optional<LocalDate> minDate = portfolioAssetRepository.findMinDateByAssetAndExchange(asset,
+                            exchange);
+                    if (minDate.isPresent()) {
+                        log.debug("Scraping 'asset': {} | 'exchange': {} | 'minDate': {}", asset, exchange,
+                                minDate.get());
+                        scraper.scrape(asset, exchange, minDate.get());
+                    }
                 }
             }
         }

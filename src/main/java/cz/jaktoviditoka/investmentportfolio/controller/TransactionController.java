@@ -1,23 +1,23 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
 import cz.jaktoviditoka.investmentportfolio.dto.*;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPriceHistory;
+import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
 import cz.jaktoviditoka.investmentportfolio.entity.TransactionPart;
-import cz.jaktoviditoka.investmentportfolio.job.AssetPriceHistoryJob;
 import cz.jaktoviditoka.investmentportfolio.model.FioEbrokerScraper;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
-import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AppUserRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.TransactionRepository;
 import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
 import cz.jaktoviditoka.investmentportfolio.service.TransactionService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,31 +25,26 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
-    
+
     @Autowired
     TransactionRepository transactionRepository;
-    
+
     @Autowired
-    AssetPriceHistoryRepository assetPriceHistoryRepository;
-    
-    @Autowired
-    PortfolioAssetRepository portfolioAssetRepository;
-    
+    AppUserRepository appUserRepository;
+
     @Autowired
     TransactionService transactionService;
-    
-    @Autowired
-    AssetPriceHistoryJob assetPriceHistory;
-    
+
     @Autowired
     ModelMapper modelMapper;
-    
+
     @Autowired
     FioEbrokerScraper fioEbrokerScraper;
 
     @GetMapping
-    public List<TransactionResponse> getTransactionByUser(@RequestParam Long userId) {
-        return transactionRepository.findByUserId(userId).stream()
+    public List<TransactionResponse> getTransactions() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return transactionRepository.findByUserEmail(username).stream()
                 .map(map -> modelMapper.map(map, TransactionResponse.class))
                 .collect(Collectors.toList());
     }
@@ -77,16 +72,11 @@ public class TransactionController {
 
     @PostMapping("/trade")
     public void trade(@RequestBody TransactionTradeRequest request) {
-        log.debug("TransactionDto: {}", request);
-
         TransactionPart buy = modelMapper.map(request.getBuy(), TransactionPart.class);
         TransactionPart sell = modelMapper.map(request.getSell(), TransactionPart.class);
-        log.debug("TransactionPart buy: {}", buy);
-        log.debug("TransactionPart sell: {}", sell);
-
         Transaction transaction = modelMapper.map(request, Transaction.class);
-        log.debug("Transaction: {}", transaction);
-
+        transaction.setFrom(sell);
+        transaction.setTo(buy);
         transactionService.process(transaction);
     }
 
@@ -97,22 +87,20 @@ public class TransactionController {
         transactionService.process(transaction);
     }
 
-    @GetMapping("/portfolioAssets")
-    public List<PortfolioAssetResponse> getPortfolioAssets(@RequestParam Long userId) {
-        return portfolioAssetRepository.findByUserId(userId).stream()
-                .map(el -> modelMapper.map(el, PortfolioAssetResponse.class))
-                .collect(Collectors.toList());
+    @GetMapping("/import/fioEbroker")
+    public void getFioEbrokerTransactions(@RequestBody(required = false) AppUserFioEbrokerRequest request)
+            throws IOException {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppUser user = appUserRepository.findByEmail(email).orElseThrow();
+        if (Objects.isNull(request)) {
+            if (Objects.isNull(user.getFioEbrokerUsername()) || Objects.isNull(user.getFioEbrokerPassword())) {
+                throw new IllegalArgumentException("Fio e-Broker credentials not provided.");
+            }
+            transactionService.process(fioEbrokerScraper.getTransactions(user));
+        } else {
+            transactionService.process(fioEbrokerScraper.getTransactions(request.getUsername(), request.getPassword(), user));
+        }
+
     }
 
-    @GetMapping("/assetPriceHistory")
-    public List<AssetPriceHistory> getAssetPriceHistory() throws IOException, InterruptedException {
-        assetPriceHistory.createMissingRecords();
-        return assetPriceHistoryRepository.findAll();
-    }
-
-    @GetMapping("/importTransactions")
-    public List<Transaction> getFioEbrokerTransactions(@RequestParam("from") String from) throws IOException {
-        return fioEbrokerScraper.getTransactions();
-    }
-    
 }

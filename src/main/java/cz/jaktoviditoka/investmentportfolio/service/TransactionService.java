@@ -2,7 +2,6 @@ package cz.jaktoviditoka.investmentportfolio.service;
 
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
 import cz.jaktoviditoka.investmentportfolio.entity.TransactionPart;
-import cz.jaktoviditoka.investmentportfolio.model.KurzyCzScraper;
 import cz.jaktoviditoka.investmentportfolio.model.Portfolio;
 import cz.jaktoviditoka.investmentportfolio.repository.TransactionRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 
 @Slf4j
@@ -22,9 +22,6 @@ public class TransactionService {
     
     @Autowired
     Portfolio portfolio;
-    
-    @Autowired
-    KurzyCzScraper scraper;
 
     public void process(Transaction transaction) {
         log.debug("Transaction: {}", transaction);
@@ -46,6 +43,10 @@ public class TransactionService {
             }
         }
 
+    }
+    
+    public void process(List<Transaction> transactions) {
+        transactions.forEach(el -> process(el));
     }
     
     

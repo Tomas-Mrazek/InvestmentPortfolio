@@ -28,7 +28,7 @@ public class Transaction {
     AppUser user;
     
     @Enumerated(EnumType.STRING)
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     TransactionType type;
        
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
