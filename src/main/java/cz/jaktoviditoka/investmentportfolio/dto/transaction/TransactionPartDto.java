@@ -1,4 +1,4 @@
-package cz.jaktoviditoka.investmentportfolio.dto;
+package cz.jaktoviditoka.investmentportfolio.dto.transaction;
 
 import lombok.AccessLevel;
 import lombok.Data;

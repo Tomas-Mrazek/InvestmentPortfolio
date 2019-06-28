@@ -1,6 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.entity;
 
-import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
+import cz.jaktoviditoka.investmentportfolio.dto.transaction.TransactionType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -33,11 +33,11 @@ public class Transaction {
        
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn
-    TransactionPart from;
+    TransactionPart add;
     
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn
-    TransactionPart to;
+    TransactionPart remove;
     
     String comment;
     

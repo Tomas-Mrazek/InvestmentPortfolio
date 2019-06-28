@@ -1,6 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
 import cz.jaktoviditoka.investmentportfolio.dto.*;
+import cz.jaktoviditoka.investmentportfolio.dto.transaction.*;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
 import cz.jaktoviditoka.investmentportfolio.entity.TransactionPart;
@@ -75,8 +76,8 @@ public class TransactionController {
         TransactionPart buy = modelMapper.map(request.getBuy(), TransactionPart.class);
         TransactionPart sell = modelMapper.map(request.getSell(), TransactionPart.class);
         Transaction transaction = modelMapper.map(request, Transaction.class);
-        transaction.setFrom(sell);
-        transaction.setTo(buy);
+        transaction.setRemove(sell);
+        transaction.setAdd(buy);
         transactionService.process(transaction);
     }
 

@@ -33,6 +33,10 @@ public class TransactionPart {
     BigDecimal feeAmount;
     
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn
+    Asset sourceAsset;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     Location location;
     

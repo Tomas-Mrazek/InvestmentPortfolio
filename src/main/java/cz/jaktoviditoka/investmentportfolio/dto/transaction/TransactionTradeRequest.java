@@ -1,6 +1,5 @@
-package cz.jaktoviditoka.investmentportfolio.dto;
+package cz.jaktoviditoka.investmentportfolio.dto.transaction;
 
-import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -11,24 +10,21 @@ import javax.validation.constraints.NotNull;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class TransactionResponse {
+public class TransactionTradeRequest {
 
-    @NotNull
-    Long id;
-    
     @NotNull
     LocalDateTime timestamp;
     
     @NotNull
-    Long userId;
+    String userId;
     
     @NotNull
-    TransactionType type = TransactionType.TRANSFER;
+    TransactionType type = TransactionType.TRADE;
    
     @NotNull
-    TransactionPartDto from;
+    TransactionPartDto buy;
     
     @NotNull
-    TransactionPartDto to; 
+    TransactionPartDto sell;
     
 }

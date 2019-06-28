@@ -1,6 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.service;
 
 import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
+import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayValueDto;
 import cz.jaktoviditoka.investmentportfolio.model.Portfolio;
 import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +22,12 @@ public class PortfolioService {
         return portfolioAssetRepository.findAllGroupedPerDay(userId);
     }
     
-    public List<PortfolioAssetGroupedDto> getPortfolioByDay(Long userId) {
-        return portfolio.calculateValue(userId);
+    public List<PortfolioAssetGroupedDto> getPortfolioPerDay(Long userId) {
+        return portfolio.portfolioPerDay(userId);
+    }
+    
+    public List<PortfolioAssetPerDayValueDto> getPortfolioPerDayValue(Long userId) {
+        return portfolio.portfolioPerDayValue(userId);
     }
     
 }

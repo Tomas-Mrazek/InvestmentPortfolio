@@ -1,6 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
-import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
+import cz.jaktoviditoka.investmentportfolio.dto.AssetType;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
 import cz.jaktoviditoka.investmentportfolio.entity.AssetPriceHistory;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
@@ -25,7 +25,7 @@ import java.util.Objects;
 @Slf4j
 @HasAdminAuthority
 @RestController
-public class InvestmentController {
+public class BaseEntityController {
 
     @Autowired
     ExchangeRepository exchangeRepository;

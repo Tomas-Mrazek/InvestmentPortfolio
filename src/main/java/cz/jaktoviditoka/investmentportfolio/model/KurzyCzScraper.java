@@ -29,13 +29,12 @@ public class KurzyCzScraper {
     @Autowired
     AssetPriceHistoryRepository assetPriceHistoryRepository;
 
-    private static int PAGE_SIZE = 100;
+    private static final int PAGE_SIZE = 100;
 
     String urlTemplate = "https://akcie-cz.kurzy.cz/prehled.asp?T=PK&CP=${assetId}&MAXROWS=${pageSize}&RF=${firstRow}";
 
     @Transactional
-    public void scrape(Asset asset, Exchange exchange, LocalDate minDate)
-            throws IOException, InterruptedException {
+    public void scrape(Asset asset, Exchange exchange, LocalDate minDate) throws IOException, InterruptedException {
         log.debug("Scraping...");
 
         Optional<LocalDate> maxDateOpt = assetPriceHistoryRepository.findByAssetAndExchange(asset, exchange).stream()
@@ -44,13 +43,13 @@ public class KurzyCzScraper {
 
         LocalDate maxDate;
 
-        if (maxDateOpt.isEmpty()) {
-            maxDate = LocalDate.now();
-        } else {
+        if (maxDateOpt.isPresent()) {
             maxDate = maxDateOpt.get();
+        } else {
+            maxDate = LocalDate.now();
         }
-        
-        if(BooleanUtils.isNotTrue(maxDate.isAfter(minDate))) {
+
+        if (BooleanUtils.isNotTrue(maxDate.isAfter(minDate))) {
             return;
         }
 
@@ -81,15 +80,17 @@ public class KurzyCzScraper {
                 switch (exchange.getName()) {
                 case "BCPP":
                     if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(1).text()))) {
-                        assetPriceHistory.setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(1).text())));
+                        assetPriceHistory
+                                .setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(1).text())));
+                        break;
                     } else {
                         continue;
                     }
-                case "NYSE":
-                    break;
                 case "RMS":
                     if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(5).text()))) {
-                        assetPriceHistory.setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(5).text())));
+                        assetPriceHistory
+                                .setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(5).text())));
+                        break;
                     } else {
                         continue;
                     }
@@ -107,7 +108,7 @@ public class KurzyCzScraper {
 
             page++;
 
-            Thread.sleep(new Random().nextInt(200) + 3000);
+            Thread.sleep(new Random().nextInt(200) + 3000l);
         }
 
         log.debug("Scraping finished...");

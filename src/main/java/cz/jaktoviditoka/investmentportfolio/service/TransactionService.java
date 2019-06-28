@@ -27,16 +27,16 @@ public class TransactionService {
         log.debug("Transaction: {}", transaction);
         transactionRepository.save(transaction);
         
-        if (Objects.nonNull(transaction.getFrom())) {
-            TransactionPart part = transaction.getFrom();
+        if (Objects.nonNull(transaction.getRemove())) {
+            TransactionPart part = transaction.getRemove();
             portfolio.remove(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
             if (Objects.nonNull(part.getFeeAmount())) {
                 portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());
             }
         }
         
-        if (Objects.nonNull(transaction.getTo())) {
-            TransactionPart part = transaction.getTo();
+        if (Objects.nonNull(transaction.getAdd())) {
+            TransactionPart part = transaction.getAdd();
             portfolio.add(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
             if (Objects.nonNull(part.getFeeAmount())) {
                 portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());

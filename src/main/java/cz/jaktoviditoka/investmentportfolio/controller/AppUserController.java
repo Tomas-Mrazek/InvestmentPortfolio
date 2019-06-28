@@ -3,13 +3,11 @@ package cz.jaktoviditoka.investmentportfolio.controller;
 import cz.jaktoviditoka.investmentportfolio.dto.AppUserFioEbrokerRequest;
 import cz.jaktoviditoka.investmentportfolio.dto.AppUserRequest;
 import cz.jaktoviditoka.investmentportfolio.dto.AppUserResponse;
-import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.security.HasAdminAuthority;
 import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
 import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
 import cz.jaktoviditoka.investmentportfolio.service.AppUserService;
-import cz.jaktoviditoka.investmentportfolio.service.PortfolioService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.modelmapper.ModelMapper;
@@ -27,9 +25,6 @@ public class AppUserController {
     
     @Autowired
     AppUserService appUserService;
-    
-    @Autowired
-    PortfolioService portfolioService;
 
     @Autowired
     ModelMapper modelMapper;
@@ -77,20 +72,6 @@ public class AppUserController {
         appUserService.disableUser(id);
     }
     
-    @HasAnyAuthority
-    @GetMapping("/portfolio")
-    public List<PortfolioAssetGroupedDto> getPortfolio() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        AppUser user = appUserService.getUser(email);
-        return portfolioService.getPortfolio(user.getId());
-    }
-    
-    @HasAnyAuthority
-    @GetMapping("/portfolio/day")
-    public List<PortfolioAssetGroupedDto> getPortfolioByDay() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        AppUser user = appUserService.getUser(email);
-        return portfolioService.getPortfolioByDay(user.getId());
-    }
+    //TODO roles
     
 }

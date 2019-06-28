@@ -1,22 +1,30 @@
 package cz.jaktoviditoka.investmentportfolio.model;
 
 import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
+import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayValueDto;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Component
 public class Portfolio {
+
+    @Autowired
+    AssetRepository assetRepository;
 
     @Autowired
     PortfolioAssetRepository portfolioAssetRepository;
@@ -53,16 +61,7 @@ public class Portfolio {
         portfolioAssetRepository.save(portfolioAsset);
     }
 
-    // Seřadit transakce od nejstarších
-    // Pro každé datum
-    // Vyhledat transakce
-    // Pro každou transakci, pokud existuje
-    // zjistit, zda-li aktivum na příslušné burze a lokaci a datu existuje
-    // pokud ano, přičíst / odečíst sumu
-    // pokud ne, vytvořit objekt
-    // Pokud neexistuje, zkopírovat objekty s předešlým datem
-
-    public List<PortfolioAssetGroupedDto> calculateValue(Long userId) {
+    public List<PortfolioAssetGroupedDto> portfolioPerDay(Long userId) {
         List<PortfolioAssetGroupedDto> portfolioPerDay = new ArrayList<>();
         List<PortfolioAsset> portfolio = portfolioAssetRepository.findByUserId(userId);
         portfolio.stream()
@@ -129,6 +128,78 @@ public class Portfolio {
                     }
                 });
         return portfolioPerDay;
+    }
+
+    public List<PortfolioAssetPerDayValueDto> portfolioPerDayValue(Long userId) {
+        Asset defaultCurrency = assetRepository.findByTicker("CZK").orElseThrow();
+        List<PortfolioAssetPerDayValueDto> portfolioAssetPerDayValue = new ArrayList<>();
+
+        List<AssetPriceHistory> assetPriceHistory = assetPriceHistoryRepository.findAll();
+        List<PortfolioAssetGroupedDto> portfolioPerDay = portfolioPerDay(userId);
+        portfolioPerDay.stream()
+                .map(el -> el.getDate())
+                .distinct()
+                .forEach(date -> {
+                    List<BigDecimal> values = new ArrayList<>();
+                    List<PortfolioAssetGroupedDto> assets = new ArrayList<>();
+
+                    portfolioPerDay.stream()
+                            .filter(ppd -> Objects.equals(ppd.getDate(), date))
+                            .forEach(ppd -> {
+
+                                if (Objects.equals(defaultCurrency, assetRepository.findById(ppd.getAssetId()).get())) {
+                                    values.add(ppd.getAmount());
+                                    assets.add(ppd);
+                                } else if (assetPriceHistory.stream()
+                                        .filter(aph -> Objects.equals(aph.getAsset().getId(), ppd.getAssetId()))
+                                        .filter(aph -> Objects.equals(aph.getExchange().getId(), ppd.getExchangeId()))
+                                        .count() > 0) {
+
+                                    BigDecimal closingPrice = assetPriceHistory.stream()
+                                            .filter(aph -> Objects.equals(aph.getDate(), ppd.getDate()))
+                                            .filter(aph -> Objects.equals(aph.getAsset().getId(), ppd.getAssetId()))
+                                            .filter(aph -> Objects.equals(aph.getExchange().getId(),
+                                                    ppd.getExchangeId()))
+                                            .map(aph -> aph.getClosingPrice())
+                                            .findFirst()
+                                            .orElseGet(() -> assetPriceHistory.stream()
+                                                    .filter(aph -> aph.getDate().isBefore(ppd.getDate()))
+                                                    .filter(aph -> Objects.equals(aph.getAsset().getId(),
+                                                            ppd.getAssetId()))
+                                                    .filter(aph -> Objects.equals(aph.getExchange().getId(),
+                                                            ppd.getExchangeId()))
+                                                    .max((el1, el2) -> el1.getDate().compareTo(el2.getDate()))
+                                                    .orElseThrow()
+                                                    .getClosingPrice());
+
+                                    values.add(ppd.getAmount().multiply(closingPrice));
+                                    assets.add(ppd);
+
+                                }
+
+                            });
+
+                    BigDecimal value = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+                    BigDecimal lastValue = portfolioAssetPerDayValue.stream()
+                            .max((el1, el2) -> el1.getDate().compareTo(el2.getDate()))
+                            .orElseGet(() -> PortfolioAssetPerDayValueDto.builder().value(BigDecimal.ZERO).build())
+                            .getValue();
+
+                    PortfolioAssetPerDayValueDto papdv = PortfolioAssetPerDayValueDto.builder()
+                            .date(date)
+                            .value(value)
+                            .change(value.subtract(lastValue))
+                            .percentualChange(lastValue.compareTo(BigDecimal.ZERO) != 0
+                                    ? value.subtract(lastValue).divide(lastValue, 4, RoundingMode.HALF_UP)
+                                            .multiply(BigDecimal.valueOf(100))
+                                    : null)
+                            .assets(assets)
+                            .build();
+
+                    portfolioAssetPerDayValue.add(papdv);
+                });
+
+        return portfolioAssetPerDayValue;
     }
 
 }

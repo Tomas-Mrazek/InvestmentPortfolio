@@ -6,15 +6,17 @@
         </Console>
     </Appenders>
     <Loggers>
+        <!-- 
         <Logger name="org.springframework.security" level="debug" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="org.hibernate.SQL" level="warn" additivity="false">
+        <Logger name="org.hibernate.SQL" level="debug" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="warn" additivity="false">
+        <Logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="trace" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
+         -->
         <Logger name="cz.jaktoviditoka" level="trace" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>

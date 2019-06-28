@@ -1,4 +1,4 @@
-package cz.jaktoviditoka.investmentportfolio.domain;
+package cz.jaktoviditoka.investmentportfolio.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -16,13 +16,13 @@ public class FioEbrokerTransaction {
     LocalDateTime timestamp;
     String type;
     String asset;
-    BigDecimal price;
     BigDecimal amount;
+    BigDecimal price;
     String currency;
     BigDecimal totalAmount;
-    String totalAmountAsset;
+    String totalAmountCurrency;
     BigDecimal feeAmount;
-    String feeAsset;
+    String feeCurrency;
     String comment;
     
 }
