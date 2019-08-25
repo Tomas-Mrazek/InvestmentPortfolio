@@ -37,39 +37,44 @@ public class AssetPriceJob {
     @Autowired
     FioCurrencyExchangeRatesScraper fioCurrencyExchangeRatesScraper;
 
+    private static final String BASE_CURRENCY = "CZK";
     private static final String LOG_MESSAGE = "Scraping...\n'asset': {}\n'exchange': {}\n'minDate': {}\n'via': {}";
 
     // @Scheduled(fixedRate = 10 * 1000)
     public void createMissingRecords() throws IOException, InterruptedException {
 
-        String baseCurrency = "CZK";
-
         List<Asset> assets = assetRepository.findAll();
 
         for (Asset asset : assets) {
-            if (Objects.equals(asset.getTicker(), baseCurrency)) {
+            if (Objects.equals(asset.getTicker(), BASE_CURRENCY)) {
                 continue;
             }
             for (Exchange exchange : asset.getExchanges()) {
-
-                Optional<LocalDate> minDate = portfolioAssetRepository.findMinDateByAssetAndExchange(asset, exchange);
-                log.trace("Scraping...\n'asset': {}\n'exchange': {}\n'minDate': {}", asset, exchange, minDate);
-                if (minDate.isPresent()) {
-                    if (Objects.equals(ExchangeAbbrEnum.BCPP, exchange.getAbbreviation())
-                            || Objects.equals(ExchangeAbbrEnum.RMS, exchange.getAbbreviation())) {
-                        log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "kurzyCzScraper");
-                        kurzyCzScraper.scrape(asset, exchange, minDate.get());
-                    } else if (Objects.equals(ExchangeAbbrEnum.FIO, exchange.getAbbreviation())) {
-                        log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "fioCurrencyExchangeRatesScraper");
-                        fioCurrencyExchangeRatesScraper.scrape(asset, exchange, minDate.get());
-                    } else if (Objects.equals(ExchangeAbbrEnum.NYSE, exchange.getAbbreviation())) {
-                        log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "alphaVantageClient");
-                        alphaVantageClient.getAssetHistoricPrice(asset, exchange, minDate.get());
-                    }
-                }
+                createMissingRecords(asset, exchange);
             }
         }
 
+    }
+
+    public void createMissingRecords(Asset asset, Exchange exchange) throws IOException, InterruptedException {
+        if (Objects.equals(asset.getTicker(), BASE_CURRENCY)) {
+            return;
+        }
+        Optional<LocalDate> minDate = portfolioAssetRepository.findMinDateByAssetAndExchange(asset,
+                exchange);
+        if (minDate.isPresent()) {
+            if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.BCPP)
+                    || Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.RMS)) {
+                log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "kurzyCzScraper");
+                kurzyCzScraper.scrape(asset, exchange, minDate.get());
+            } else if (Objects.equals(exchange.getAbbreviation(),  ExchangeAbbrEnum.FIO)) {
+                log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "fioCurrencyExchangeRatesScraper");
+                fioCurrencyExchangeRatesScraper.scrape(asset, exchange, minDate.get());
+            } else if (Objects.equals(exchange.getAbbreviation(),  ExchangeAbbrEnum.NYSE)) {
+                log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "alphaVantageClient");
+                alphaVantageClient.getAssetHistoricPrice(asset, exchange, minDate.get());
+            }
+        }
     }
 
 }

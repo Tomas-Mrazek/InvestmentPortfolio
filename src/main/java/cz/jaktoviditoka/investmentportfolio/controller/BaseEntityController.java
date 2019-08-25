@@ -32,13 +32,13 @@ public class BaseEntityController {
 
     @Autowired
     AssetRepository assetRepository;
-    
+
     @Autowired
     AssetPriceRepository assetPriceRepository;
 
     @Autowired
     LocationRepository locationRepository;
-    
+
     @Autowired
     AssetPriceJob assetPrice;
 
@@ -49,7 +49,7 @@ public class BaseEntityController {
     public List<Exchange> getExchanges() {
         return exchangeRepository.findAll();
     }
-    
+
     @PostMapping("/exchanges")
     public void createExchange(@RequestBody Exchange exchange) {
         exchangeRepository.save(exchange);
@@ -78,18 +78,29 @@ public class BaseEntityController {
     public Asset getAssetById(@RequestParam Long id) {
         return assetRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
-    
+
     @GetMapping("/assets/import/priceHistory")
     public List<AssetPrice> getAssetPriceHistory() throws IOException, InterruptedException {
         assetPrice.createMissingRecords();
         return assetPriceRepository.findAll();
     }
 
+    @GetMapping("/assets/import/priceHistorySpecific")
+    public List<AssetPrice> getAssetPriceHistorySpecific(@RequestParam(required = false) Long assetId, @RequestParam(required = false) Long exchangeId)
+            throws IOException, InterruptedException {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Exchange exchange = exchangeRepository.findById(exchangeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        assetPrice.createMissingRecords(asset, exchange);
+        return assetPriceRepository.findByAssetAndExchange(asset, exchange);
+    }
+
     @GetMapping("/locations")
     public List<Location> getLocations() {
         return locationRepository.findAll();
     }
-    
+
     @PostMapping("/locations")
     public void createLocation(@RequestBody Location location) {
         locationRepository.save(location);

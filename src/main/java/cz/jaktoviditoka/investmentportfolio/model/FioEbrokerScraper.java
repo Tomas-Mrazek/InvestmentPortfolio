@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
 import com.gargoylesoftware.htmlunit.util.Cookie;
+import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
 import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import cz.jaktoviditoka.investmentportfolio.dto.FioEbrokerTransaction;
@@ -429,17 +430,25 @@ public class FioEbrokerScraper {
                     } else {
                         throw new IllegalArgumentException("Unknown trade type.");
                     }
-
-                    if (transactionRemove.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
+                    
+                    if (Objects.equals(transactionRemove.getAsset().getType(), AssetType.CURRENCY)) {
+                        transactionRemove.setExchange(defaultCurrencyExchange);
+                    }else if (transactionRemove.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
                         transactionRemove.setExchange(defaultCzechStockExchange);
                     } else if (transactionRemove.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
                         transactionRemove.setExchange(defaultForeignStockExchange);
+                    } else {
+                        throw new IllegalArgumentException("Missing exchange.");
                     }
                     
-                    if (transactionAdd.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
+                    if (Objects.equals(transactionAdd.getAsset().getType(), AssetType.CURRENCY)) {
+                        transactionAdd.setExchange(defaultCurrencyExchange);
+                    }else if (transactionAdd.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
                         transactionAdd.setExchange(defaultCzechStockExchange);
                     } else if (transactionAdd.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
                         transactionAdd.setExchange(defaultForeignStockExchange);
+                    } else {
+                        throw new IllegalArgumentException("Missing exchange.");
                     }
 
                     transactionRemove.setLocation(defaultLocation);
@@ -460,8 +469,8 @@ public class FioEbrokerScraper {
 
     private List<Transaction> interests(List<FioEbrokerTransaction> transactions) {
         return transactions.stream()
-                .filter(el -> el.getComment().contains(el.getAsset() + " - Dividenda") &&
-                        (el.getComment().contains("Vloženo na účet") || el.getComment().contains("MONETA MONEY BANK")))
+                .filter(el -> el.getComment().contains(el.getAsset() + " - Dividenda") ||
+                        (el.getComment().contains("Vloženo na účet") && el.getComment().contains("MONETA MONEY BANK")))
                 .map(el -> {
 
                     if (el.getComment().contains("MONETA MONEY BANK")) {

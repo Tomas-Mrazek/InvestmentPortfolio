@@ -31,7 +31,7 @@ public class Asset {
     @Column(nullable = false)
     AssetType type;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     List<Exchange> exchanges;
 
 }
