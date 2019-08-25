@@ -1,6 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.repository;
 
-import cz.jaktoviditoka.investmentportfolio.dto.AssetType;
+import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

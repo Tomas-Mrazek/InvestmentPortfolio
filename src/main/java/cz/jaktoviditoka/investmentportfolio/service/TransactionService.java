@@ -9,11 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Objects;
 
 @Slf4j
-@Transactional
 @Service
 public class TransactionService {
 
@@ -23,32 +21,27 @@ public class TransactionService {
     @Autowired
     Portfolio portfolio;
 
+    @Transactional
     public void process(Transaction transaction) {
         log.debug("Transaction: {}", transaction);
         transactionRepository.save(transaction);
         
-        if (Objects.nonNull(transaction.getRemove())) {
-            TransactionPart part = transaction.getRemove();
+        if (Objects.nonNull(transaction.getOut())) {
+            TransactionPart part = transaction.getOut();
             portfolio.remove(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
             if (Objects.nonNull(part.getFeeAmount())) {
                 portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());
             }
         }
         
-        if (Objects.nonNull(transaction.getAdd())) {
-            TransactionPart part = transaction.getAdd();
+        if (Objects.nonNull(transaction.getIn())) {
+            TransactionPart part = transaction.getIn();
             portfolio.add(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
             if (Objects.nonNull(part.getFeeAmount())) {
                 portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());
             }
         }
 
-    }
-    
-    public void process(List<Transaction> transactions) {
-        transactions.forEach(el -> process(el));
-    }
-    
-    
+    }    
     
 }

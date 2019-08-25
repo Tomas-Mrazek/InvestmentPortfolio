@@ -1,4 +1,4 @@
-package cz.jaktoviditoka.investmentportfolio.dto.transaction;
+package cz.jaktoviditoka.investmentportfolio.domain;
 
 public enum TransactionType {
 

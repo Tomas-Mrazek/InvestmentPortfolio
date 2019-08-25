@@ -27,7 +27,7 @@ public class PortfolioController {
     PortfolioService portfolioService;
     
     @HasAnyAuthority
-    @GetMapping("/portfolio")
+    @GetMapping
     public List<PortfolioAssetGroupedDto> getPortfolio() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser user = appUserService.getUser(email);
@@ -35,7 +35,7 @@ public class PortfolioController {
     }
     
     @HasAnyAuthority
-    @GetMapping("/portfolio/day")
+    @GetMapping("/day")
     public List<PortfolioAssetGroupedDto> getPortfolioPerDay() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser user = appUserService.getUser(email);
@@ -43,7 +43,7 @@ public class PortfolioController {
     }
     
     @HasAnyAuthority
-    @GetMapping("/portfolio/day/value")
+    @GetMapping("/day/value")
     public List<PortfolioAssetPerDayValueDto> getPortfolioPerDayValue() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser user = appUserService.getUser(email);

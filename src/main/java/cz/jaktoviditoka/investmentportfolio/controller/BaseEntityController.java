@@ -1,12 +1,12 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
-import cz.jaktoviditoka.investmentportfolio.dto.AssetType;
+import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPriceHistory;
+import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import cz.jaktoviditoka.investmentportfolio.entity.Location;
-import cz.jaktoviditoka.investmentportfolio.job.AssetPriceHistoryJob;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
+import cz.jaktoviditoka.investmentportfolio.job.AssetPriceJob;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.LocationRepository;
@@ -34,13 +34,13 @@ public class BaseEntityController {
     AssetRepository assetRepository;
     
     @Autowired
-    AssetPriceHistoryRepository assetPriceHistoryRepository;
+    AssetPriceRepository assetPriceRepository;
 
     @Autowired
     LocationRepository locationRepository;
     
     @Autowired
-    AssetPriceHistoryJob assetPriceHistory;
+    AssetPriceJob assetPrice;
 
     @Autowired
     ModelMapper modelMapper;
@@ -80,9 +80,9 @@ public class BaseEntityController {
     }
     
     @GetMapping("/assets/import/priceHistory")
-    public List<AssetPriceHistory> getAssetPriceHistory() throws IOException, InterruptedException {
-        assetPriceHistory.createMissingRecords();
-        return assetPriceHistoryRepository.findAll();
+    public List<AssetPrice> getAssetPriceHistory() throws IOException, InterruptedException {
+        assetPrice.createMissingRecords();
+        return assetPriceRepository.findAll();
     }
 
     @GetMapping("/locations")

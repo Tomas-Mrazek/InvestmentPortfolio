@@ -1,5 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.dto;
 
+import cz.jaktoviditoka.investmentportfolio.domain.RoleType;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

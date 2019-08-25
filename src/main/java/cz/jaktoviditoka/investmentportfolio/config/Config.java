@@ -27,8 +27,8 @@ public class Config {
         
         modelMapper.createTypeMap(TransactionTradeRequest.class, Transaction.class).addMappings(mapper -> {
             mapper.<Long>skip((dest, v) -> dest.setId(v));
-            mapper.<TransactionPart>map(src -> src.getSell(), (dest, v) -> dest.setRemove(v));
-            mapper.<TransactionPart>map(src -> src.getBuy(), (dest, v) -> dest.setAdd(v));
+            mapper.<TransactionPart>map(src -> src.getSell(), (dest, v) -> dest.setOut(v));
+            mapper.<TransactionPart>map(src -> src.getBuy(), (dest, v) -> dest.setIn(v));
         });
 
         return modelMapper;

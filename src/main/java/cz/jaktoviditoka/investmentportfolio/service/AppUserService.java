@@ -1,7 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.service;
 
+import cz.jaktoviditoka.investmentportfolio.domain.RoleType;
 import cz.jaktoviditoka.investmentportfolio.dto.AppUserRequest;
-import cz.jaktoviditoka.investmentportfolio.dto.RoleType;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.repository.AppUserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,8 @@ import javax.persistence.EntityNotFoundException;
 @Service
 public class AppUserService implements UserDetailsService {
     
-    private static final RoleType DEFAULT_ROLE = RoleType.USER;
+    //TODO Only for testing purpores
+    private static final RoleType DEFAULT_ROLE = RoleType.ADMIN;
     
     @Autowired
     AppUserRepository appUserRepository;

@@ -1,9 +1,10 @@
 package cz.jaktoviditoka.investmentportfolio.model;
 
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPriceHistory;
+import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,109 +21,94 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class KurzyCzScraper {
 
     @Autowired
-    AssetPriceHistoryRepository assetPriceHistoryRepository;
+    AssetRepository assetRepository;
 
-    private static final int PAGE_SIZE = 100;
+    @Autowired
+    AssetPriceRepository assetPriceRepository;
 
-    String urlTemplate = "https://akcie-cz.kurzy.cz/prehled.asp?T=PK&CP=${assetId}&MAXROWS=${pageSize}&RF=${firstRow}";
+    private static final String URL_TEMPLATE = "https://akcie-cz.kurzy.cz/prehled.asp?T=PK&CP=${assetId}&MAXROWS=1&Day=${date}";
+    private static final String PRICE_ASSET = "CZK";
 
     @Transactional
-    public void scrape(Asset asset, Exchange exchange, LocalDate minDate) throws IOException, InterruptedException {
-        log.debug("Scraping...");
+    public void scrape(Asset asset, Exchange exchange, LocalDate scrapeDate) throws IOException, InterruptedException {
+        log.trace("Scraping...");
 
-        Optional<LocalDate> maxDateOpt = assetPriceHistoryRepository.findByAssetAndExchange(asset, exchange).stream()
+        Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
+
+        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
                 .map(mapper -> mapper.getDate())
-                .min(Comparator.comparing(LocalDate::toEpochDay));
+                .collect(Collectors.toList());
 
-        LocalDate maxDate;
+        List<LocalDate> missingDates = scrapeDate.datesUntil(LocalDate.now())
+                .filter(el -> BooleanUtils.isNotTrue(existingDates.contains(el)))
+                .collect(Collectors.toList());
 
-        if (maxDateOpt.isPresent()) {
-            maxDate = maxDateOpt.get();
-        } else {
-            maxDate = LocalDate.now();
+        Integer columnPrice;
+        switch (exchange.getAbbreviation()) {
+            case BCPP:
+                columnPrice = 1;
+                break;
+            case RMS:
+                columnPrice = 5;
+                break;
+            default:
+                throw new IllegalArgumentException("Incompatible exchange.");
         }
 
-        if (BooleanUtils.isNotTrue(maxDate.isAfter(minDate))) {
-            return;
-        }
+        for (LocalDate date : missingDates) {
+            log.debug("Scraping date: {}", date);
 
-        boolean scraping = true;
-        int page = 0;
-        while (scraping) {
-            Document site = getPage(asset.getScraperId(), page);
+            Document site = Jsoup
+                    .connect(getPageUrl(asset.getScraperId(), date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))))
+                    .get();
             Element table = site.select("table.pd.leftcolumnwidth > tbody").first();
             Elements rows = table.select("tr.ps, tr.pl");
+            Element row = rows.first();
 
-            LocalDate lastRowDate = LocalDate.parse((rows.get(rows.size() - 1)).child(0).text(),
-                    DateTimeFormatter.ofPattern("d.M.yyyy"));
-            if (lastRowDate.isAfter(maxDate)) {
-                page++;
-                continue;
+            BigDecimal price;
+            if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(columnPrice).text()))) {
+                price = new BigDecimal(StringUtils.deleteWhitespace(row.child(columnPrice).text()));
+            } else {
+                price = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
+                        .filter(el -> el.getDate().isBefore(date))
+                        .max((el1, el2) -> el1.getDate().compareTo(el2.getDate()))
+                        .orElseThrow(() -> new IllegalArgumentException("Unknown price."))
+                        .getPrice();
             }
 
-            for (Element row : rows) {
-                LocalDate rowDate = LocalDate.parse(row.child(0).text(), DateTimeFormatter.ofPattern("d.M.yyyy"));
+            AssetPrice assetPrice = AssetPrice.builder()
+                    .date(date)
+                    .asset(asset)
+                    .price(price)
+                    .priceAsset(priceAsset)
+                    .exchange(exchange)
+                    .build();
+            assetPriceRepository.save(assetPrice);
 
-                if (rowDate.isBefore(minDate)) {
-                    scraping = false;
-                    break;
-                }
-
-                AssetPriceHistory assetPriceHistory = new AssetPriceHistory();
-
-                switch (exchange.getName()) {
-                case "BCPP":
-                    if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(1).text()))) {
-                        assetPriceHistory
-                                .setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(1).text())));
-                        break;
-                    } else {
-                        continue;
-                    }
-                case "RMS":
-                    if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(5).text()))) {
-                        assetPriceHistory
-                                .setClosingPrice(new BigDecimal(StringUtils.deleteWhitespace(row.child(5).text())));
-                        break;
-                    } else {
-                        continue;
-                    }
-                default:
-                    throw new IllegalArgumentException("Scraping error...");
-                }
-
-                assetPriceHistory.setAsset(asset);
-                assetPriceHistory.setDate(rowDate);
-                assetPriceHistory.setExchange(exchange);
-
-                assetPriceHistoryRepository.save(assetPriceHistory);
-
-            }
-
-            page++;
-
-            Thread.sleep(new Random().nextInt(200) + 3000l);
+            Thread.sleep(new Random().nextInt(20) + 200l);
         }
 
-        log.debug("Scraping finished...");
+        log.trace("Scraping finished...");
     }
 
-    private Document getPage(String assetId, int page) throws IOException {
+    private String getPageUrl(String assetId, String date) {
         Map<String, Object> urlParametersMap = new HashMap<>();
         urlParametersMap.put("assetId", assetId);
-        urlParametersMap.put("pageSize", PAGE_SIZE);
-        urlParametersMap.put("firstRow", PAGE_SIZE * page);
+        urlParametersMap.put("date", date);
         StringSubstitutor sub = new StringSubstitutor(urlParametersMap);
-        String url = sub.replace(urlTemplate);
-        log.trace("URL: {}", url);
-        return Jsoup.connect(url).get();
+        return sub.replace(URL_TEMPLATE);
     }
 
 }

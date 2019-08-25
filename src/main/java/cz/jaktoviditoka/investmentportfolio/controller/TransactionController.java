@@ -1,6 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
-import cz.jaktoviditoka.investmentportfolio.dto.*;
+import cz.jaktoviditoka.investmentportfolio.dto.AppUserFioEbrokerRequest;
 import cz.jaktoviditoka.investmentportfolio.dto.transaction.*;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
@@ -76,8 +76,8 @@ public class TransactionController {
         TransactionPart buy = modelMapper.map(request.getBuy(), TransactionPart.class);
         TransactionPart sell = modelMapper.map(request.getSell(), TransactionPart.class);
         Transaction transaction = modelMapper.map(request, Transaction.class);
-        transaction.setRemove(sell);
-        transaction.setAdd(buy);
+        transaction.setOut(sell);
+        transaction.setIn(buy);
         transactionService.process(transaction);
     }
 
@@ -97,9 +97,11 @@ public class TransactionController {
             if (Objects.isNull(user.getFioEbrokerUsername()) || Objects.isNull(user.getFioEbrokerPassword())) {
                 throw new IllegalArgumentException("Fio e-Broker credentials not provided.");
             }
-            transactionService.process(fioEbrokerScraper.getTransactions(user));
+            fioEbrokerScraper.getTransactions(user)
+                    .forEach(el -> transactionService.process(el));
         } else {
-            transactionService.process(fioEbrokerScraper.getTransactions(request.getUsername(), request.getPassword(), user));
+            fioEbrokerScraper.getTransactions(request.getUsername(), request.getPassword(), user)
+                    .forEach(el -> transactionService.process(el));
         }
 
     }

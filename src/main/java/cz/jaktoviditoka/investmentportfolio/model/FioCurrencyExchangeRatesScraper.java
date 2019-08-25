@@ -4,16 +4,19 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPriceHistory;
+import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -26,28 +29,38 @@ import java.util.stream.Collectors;
 public class FioCurrencyExchangeRatesScraper {
 
     @Autowired
-    AssetPriceHistoryRepository assetPriceHistoryRepository;
+    AssetRepository assetRepository;
+    
+    @Autowired
+    AssetPriceRepository assetPriceRepository;
 
     WebClient webClient = new WebClient();
+    
+    private static final String URL = "https://www.fio.cz/akcie-investice/dalsi-sluzby-fio/devizove-konverze";
+    private static final String PRICE_ASSET = "CZK";
 
     @Transactional
-    public void scrape(Asset asset, Exchange exchange, LocalDate minDate) throws IOException, InterruptedException {
+    public void scrape(Asset asset, Exchange exchange, LocalDate scrapeDate) throws IOException, InterruptedException {
+        log.trace("Scraping...");
+        
+        Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
 
-        HtmlPage site = webClient.getPage("https://www.fio.cz/akcie-investice/dalsi-sluzby-fio/devizove-konverze");
-
-        LocalDate maxDate = LocalDate.now();
-        List<LocalDate> existingDates = assetPriceHistoryRepository.findByAssetAndExchange(asset, exchange).stream()
+        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
                 .map(mapper -> mapper.getDate())
                 .collect(Collectors.toList());
-        List<LocalDate> processingDates = minDate.datesUntil(maxDate)
+        
+        List<LocalDate> missingDates = scrapeDate.datesUntil(LocalDate.now())
+                .filter(el -> BooleanUtils.isNotTrue(existingDates.contains(el)))
                 .collect(Collectors.toList());
-        processingDates.removeAll(existingDates);
-
-        for (LocalDate date : processingDates) {
+        
+        HtmlPage page = webClient.getPage(URL);
+        
+        for (LocalDate date : missingDates) {
             log.debug("Scraping date: {}", date);
 
-            HtmlTextInput dateInput = site.getElementByName("keDni_den");
-            HtmlSubmitInput submit = site.getElementByName("keDni_submit");
+            HtmlTextInput dateInput = page.getElementByName("keDni_den");
+            HtmlSubmitInput submit = page.getElementByName("keDni_submit");
             dateInput.type(date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             HtmlPage result = submit.click();
             HtmlTable table = (HtmlTable) result.getByXPath(".//table[@class='tbl-sazby']").get(0);
@@ -60,23 +73,33 @@ public class FioCurrencyExchangeRatesScraper {
                     iterator.next();
                     iterator.next();
 
-                    BigDecimal rate = new BigDecimal(iterator.next().asText().replace(",", "."));
+                    BigDecimal sellPrice = new BigDecimal(iterator.next().asText().replace(",", "."));
+                    BigDecimal buyPrice = new BigDecimal(iterator.next().asText().replace(",", "."));
 
-                    AssetPriceHistory assetPriceHistory = new AssetPriceHistory();
-                    assetPriceHistory.setDate(date);
-                    assetPriceHistory.setAsset(asset);
-                    assetPriceHistory.setExchange(exchange);
-                    assetPriceHistory.setClosingPrice(rate);
-
-                    assetPriceHistoryRepository.save(assetPriceHistory);
-
-                    log.debug("Scraping price history: {}", assetPriceHistory);
+                    AssetPrice sellAssetPrice = AssetPrice.builder()
+                            .date(date)
+                            .asset(asset)
+                            .price(sellPrice)
+                            .priceAsset(priceAsset)
+                            .exchange(exchange)
+                            .build();
+                    assetPriceRepository.save(sellAssetPrice);
+                    
+                    AssetPrice buyAssetPrice = AssetPrice.builder()
+                            .date(date)
+                            .asset(priceAsset)
+                            .price(BigDecimal.ONE.divide(buyPrice, 5, RoundingMode.HALF_UP))
+                            .priceAsset(asset)
+                            .exchange(exchange)
+                            .build();
+                    assetPriceRepository.save(buyAssetPrice);
                 }
             }
 
-            Thread.sleep(new Random().nextInt(200) + 1000l);
+            Thread.sleep(new Random().nextInt(20) + 200l);
         }
 
+        log.trace("Scraping finished...");
     }
 
 }

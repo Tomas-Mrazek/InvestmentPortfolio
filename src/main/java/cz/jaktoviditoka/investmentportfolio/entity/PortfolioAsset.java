@@ -31,7 +31,7 @@ public class PortfolioAsset {
     @JoinColumn(nullable = false)
     Asset asset;
     
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 38, scale = 18)
     BigDecimal amount;
     
     @ManyToOne(fetch = FetchType.LAZY)

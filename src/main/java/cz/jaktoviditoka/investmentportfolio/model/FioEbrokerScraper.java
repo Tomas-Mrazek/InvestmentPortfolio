@@ -4,8 +4,9 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
 import com.gargoylesoftware.htmlunit.util.Cookie;
+import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
+import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import cz.jaktoviditoka.investmentportfolio.dto.FioEbrokerTransaction;
-import cz.jaktoviditoka.investmentportfolio.dto.transaction.TransactionType;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
 import cz.jaktoviditoka.investmentportfolio.repository.*;
 import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
@@ -54,12 +55,12 @@ public class FioEbrokerScraper {
 
     WebClient webClient = new WebClient();
 
-    String loginUrl = "https://www.fio.cz/e-broker/e-broker.cgi";
-    String transactionsUrl = "https://www.fio.cz/e-broker/e-obchody.cgi?obchody_DAT_od=${dateFrom}&obchody_DAT_do=${dateTo}&PEN_zeme=&ID_trh=";
+    private static final String LOGIN_URL = "https://www.fio.cz/e-broker/e-broker.cgi";
+    private static final String TRANSACTION_URL = "https://www.fio.cz/e-broker/e-obchody.cgi?obchody_DAT_od=${dateFrom}&obchody_DAT_do=${dateTo}&PEN_zeme=&ID_trh=";
 
-    private static final String DEFAULT_CURRENCY_EXCHANGE_NAME = "Fio Banka";
-    private static final String DEFAULT_CZECH_STOCK_EXCHANGE_NAME = "BCPP";
-    private static final String DEFAULT_FOREIGN_STOCK_EXCHANGE_NAME = "NYSE";
+    private static final ExchangeAbbrEnum DEFAULT_CURRENCY_EXCHANGE = ExchangeAbbrEnum.FIO;
+    private static final ExchangeAbbrEnum DEFAULT_CZECH_STOCK_EXCHANGE = ExchangeAbbrEnum.BCPP;
+    private static final ExchangeAbbrEnum DEFAULT_FOREIGN_STOCK_EXCHANGE = ExchangeAbbrEnum.NYSE;
     private static final String DEFAULT_LOCATION_NAME = "Fio e-Broker";
 
     private static final String EXCEPTION_MESSAGE_ASSET_NOT_FOUND = "Asset not found.";
@@ -85,7 +86,7 @@ public class FioEbrokerScraper {
             }
         }
 
-        HtmlPage loginPage = webClient.getPage(loginUrl);
+        HtmlPage loginPage = webClient.getPage(LOGIN_URL);
         HtmlTextInput loginUserName = loginPage.getElementByName("LOGIN_USERNAME");
         HtmlPasswordInput loginPassword = loginPage.getElementByName("LOGIN_PASSWORD");
         HtmlSubmitInput submit = loginPage.getElementByName("SUBMIT");
@@ -126,9 +127,9 @@ public class FioEbrokerScraper {
 
         List<FioEbrokerTransaction> fioEbrokerTransactions = new ArrayList<>();
 
-        defaultCurrencyExchange = exchangeRepository.findByName(DEFAULT_CURRENCY_EXCHANGE_NAME).orElseThrow();
-        defaultCzechStockExchange = exchangeRepository.findByName(DEFAULT_CZECH_STOCK_EXCHANGE_NAME).orElseThrow();
-        defaultForeignStockExchange = exchangeRepository.findByName(DEFAULT_FOREIGN_STOCK_EXCHANGE_NAME).orElseThrow();
+        defaultCurrencyExchange = exchangeRepository.findByAbbreviation(DEFAULT_CURRENCY_EXCHANGE).orElseThrow();
+        defaultCzechStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_CZECH_STOCK_EXCHANGE).orElseThrow();
+        defaultForeignStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_FOREIGN_STOCK_EXCHANGE).orElseThrow();
         defaultLocation = locationRepository.findByName(DEFAULT_LOCATION_NAME).orElseThrow();
 
         LocalDate from = LocalDate.now().minusYears(1);
@@ -137,11 +138,15 @@ public class FioEbrokerScraper {
         boolean scraping = true;
 
         while (scraping) {
-            HtmlPage transactionPage = getTransactionPage(from, to);
+            HtmlPage transactionPage = getTransactionPage(
+                    from.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
+                    to.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             if (transactionPage.asXml().contains("login_table")) {
                 cookieCacheRepository.deleteAll();
                 login(username, password);
-                transactionPage = getTransactionPage(from, to);
+                transactionPage = getTransactionPage(
+                        from.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
+                        to.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             }
             HtmlTable table = transactionPage.getHtmlElementById("obchody_full_table");
             for (HtmlTableBody body : table.getBodies()) {
@@ -163,6 +168,8 @@ public class FioEbrokerScraper {
             to = to.minusYears(1);
         }
 
+        getTransactionPage(StringUtils.EMPTY, StringUtils.EMPTY);
+
         List<Transaction> transactions = new ArrayList<>();
         transactions.addAll(deposits(fioEbrokerTransactions));
         transactions.addAll(interests(fioEbrokerTransactions));
@@ -174,12 +181,12 @@ public class FioEbrokerScraper {
                 .collect(Collectors.toList());
     }
 
-    private HtmlPage getTransactionPage(LocalDate from, LocalDate to) throws IOException {
+    private HtmlPage getTransactionPage(String from, String to) throws IOException {
         Map<String, Object> urlParametersMap = new HashMap<>();
-        urlParametersMap.put("dateFrom", from.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-        urlParametersMap.put("dateTo", to.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+        urlParametersMap.put("dateFrom", from);
+        urlParametersMap.put("dateTo", to);
         StringSubstitutor sub = new StringSubstitutor(urlParametersMap);
-        String url = sub.replace(transactionsUrl);
+        String url = sub.replace(TRANSACTION_URL);
         return webClient.getPage(url);
     }
 
@@ -304,8 +311,9 @@ public class FioEbrokerScraper {
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
                             .type(TransactionType.DEPOSIT)
-                            .add(transactionAdd)
+                            .in(transactionAdd)
                             .comment(el.getComment())
+                            .imported(true)
                             .build();
 
                 })
@@ -427,6 +435,12 @@ public class FioEbrokerScraper {
                     } else if (transactionRemove.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
                         transactionRemove.setExchange(defaultForeignStockExchange);
                     }
+                    
+                    if (transactionAdd.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
+                        transactionAdd.setExchange(defaultCzechStockExchange);
+                    } else if (transactionAdd.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
+                        transactionAdd.setExchange(defaultForeignStockExchange);
+                    }
 
                     transactionRemove.setLocation(defaultLocation);
                     transactionAdd.setLocation(defaultLocation);
@@ -434,9 +448,10 @@ public class FioEbrokerScraper {
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
                             .type(TransactionType.TRADE)
-                            .remove(transactionRemove)
-                            .add(transactionAdd)
+                            .out(transactionRemove)
+                            .in(transactionAdd)
                             .comment(el.getComment())
+                            .imported(true)
                             .build();
 
                 })
@@ -475,8 +490,9 @@ public class FioEbrokerScraper {
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
                             .type(TransactionType.INTEREST)
-                            .add(transactionAdd)
+                            .in(transactionAdd)
                             .comment(el.getComment())
+                            .imported(true)
                             .build();
 
                 })
@@ -511,8 +527,9 @@ public class FioEbrokerScraper {
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
                             .type(TransactionType.SPECIAL_FEE)
-                            .remove(transactionRemove)
+                            .out(transactionRemove)
                             .comment(el.getComment())
+                            .imported(true)
                             .build();
 
                 })

@@ -3,7 +3,7 @@ package cz.jaktoviditoka.investmentportfolio.model;
 import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
 import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayValueDto;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceHistoryRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public class Portfolio {
     PortfolioAssetRepository portfolioAssetRepository;
 
     @Autowired
-    AssetPriceHistoryRepository assetPriceHistoryRepository;
+    AssetPriceRepository assetPriceRepository;
 
     @Autowired
     ModelMapper modelMapper;
@@ -134,7 +134,7 @@ public class Portfolio {
         Asset defaultCurrency = assetRepository.findByTicker("CZK").orElseThrow();
         List<PortfolioAssetPerDayValueDto> portfolioAssetPerDayValue = new ArrayList<>();
 
-        List<AssetPriceHistory> assetPriceHistory = assetPriceHistoryRepository.findAll();
+        List<AssetPrice> assetPriceHistory = assetPriceRepository.findAll();
         List<PortfolioAssetGroupedDto> portfolioPerDay = portfolioPerDay(userId);
         portfolioPerDay.stream()
                 .map(el -> el.getDate())
@@ -160,7 +160,7 @@ public class Portfolio {
                                             .filter(aph -> Objects.equals(aph.getAsset().getId(), ppd.getAssetId()))
                                             .filter(aph -> Objects.equals(aph.getExchange().getId(),
                                                     ppd.getExchangeId()))
-                                            .map(aph -> aph.getClosingPrice())
+                                            .map(aph -> aph.getPrice())
                                             .findFirst()
                                             .orElseGet(() -> assetPriceHistory.stream()
                                                     .filter(aph -> aph.getDate().isBefore(ppd.getDate()))
@@ -170,7 +170,7 @@ public class Portfolio {
                                                             ppd.getExchangeId()))
                                                     .max((el1, el2) -> el1.getDate().compareTo(el2.getDate()))
                                                     .orElseThrow()
-                                                    .getClosingPrice());
+                                                    .getPrice());
 
                                     values.add(ppd.getAmount().multiply(closingPrice));
                                     assets.add(ppd);

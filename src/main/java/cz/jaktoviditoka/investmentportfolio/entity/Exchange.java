@@ -1,5 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.entity;
 
+import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +19,8 @@ public class Exchange {
     @Column(unique = true, nullable = false)
     String name;
     
-    @Column
-    String scrapeUrl;
+    @Enumerated(EnumType.STRING)
+    @Column(unique = true, nullable = false)
+    ExchangeAbbrEnum abbreviation;
 
 }

@@ -1,5 +1,6 @@
 package cz.jaktoviditoka.investmentportfolio.dto.transaction;
 
+import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -22,12 +23,15 @@ public class TransactionResponse {
     Long userId;
     
     @NotNull
-    TransactionType type = TransactionType.TRANSFER;
+    TransactionType type;
    
     @NotNull
-    TransactionPartDto from;
+    TransactionPartDto in;
     
     @NotNull
-    TransactionPartDto to; 
+    TransactionPartDto out; 
+    
+    @NotNull
+    Boolean imported;
     
 }
