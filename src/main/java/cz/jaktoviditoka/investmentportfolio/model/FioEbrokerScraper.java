@@ -6,8 +6,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
+import cz.jaktoviditoka.investmentportfolio.domain.FioEbrokerTransaction;
 import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
-import cz.jaktoviditoka.investmentportfolio.dto.FioEbrokerTransaction;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
 import cz.jaktoviditoka.investmentportfolio.repository.*;
 import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,6 +64,8 @@ public class FioEbrokerScraper {
     private static final ExchangeAbbrEnum DEFAULT_CZECH_STOCK_EXCHANGE = ExchangeAbbrEnum.BCPP;
     private static final ExchangeAbbrEnum DEFAULT_FOREIGN_STOCK_EXCHANGE = ExchangeAbbrEnum.NYSE;
     private static final String DEFAULT_LOCATION_NAME = "Fio e-Broker";
+    
+    private static final DateTimeFormatter PAGE_DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private static final String EXCEPTION_MESSAGE_ASSET_NOT_FOUND = "Asset not found.";
     private static final String EXCEPTION_MESSAGE_PARSING_ERROR = "Parsing error...";
@@ -140,14 +143,14 @@ public class FioEbrokerScraper {
 
         while (scraping) {
             HtmlPage transactionPage = getTransactionPage(
-                    from.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-                    to.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                    from.format(PAGE_DATE_TIME_FORMAT),
+                    to.format(PAGE_DATE_TIME_FORMAT));
             if (transactionPage.asXml().contains("login_table")) {
                 cookieCacheRepository.deleteAll();
                 login(username, password);
                 transactionPage = getTransactionPage(
-                        from.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-                        to.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                        from.format(PAGE_DATE_TIME_FORMAT),
+                        to.format(PAGE_DATE_TIME_FORMAT));
             }
             HtmlTable table = transactionPage.getHtmlElementById("obchody_full_table");
             for (HtmlTableBody body : table.getBodies()) {
@@ -287,7 +290,7 @@ public class FioEbrokerScraper {
                 .filter(el -> el.getComment().contains("Vloženo na účet"))
                 .filter(el -> BooleanUtils.isNotTrue(el.getComment().contains("MONETA MONEY BANK")))
                 .map(el -> {
-                    TransactionPart transactionAdd = new TransactionPart();
+                    TransactionMovement transactionAdd = new TransactionMovement();
 
                     Optional<Asset> assetOpt = assetRepository.findByTicker(el.getCurrency());
                     if (assetOpt.isPresent()) {
@@ -328,8 +331,8 @@ public class FioEbrokerScraper {
                 .filter(el -> Objects.nonNull(el.getType()))
                 .map(el -> {
 
-                    TransactionPart transactionRemove = new TransactionPart();
-                    TransactionPart transactionAdd = new TransactionPart();
+                    TransactionMovement transactionRemove = new TransactionMovement();
+                    TransactionMovement transactionAdd = new TransactionMovement();
 
                     if (el.getComment().contains("Nákup")) {
 
@@ -420,9 +423,14 @@ public class FioEbrokerScraper {
                         }
 
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
-                        if (assetOpt.isPresent()) {
-                            transactionAdd.setAsset(assetOpt.get());
-                            transactionAdd.setAmount(el.getAmount());
+                        if (assetOpt.isPresent()) {                            
+                            Asset asset = assetOpt.get();
+                            transactionAdd.setAsset(asset);
+                            if (Objects.nonNull(asset.getNominalPrice())) {
+                                transactionAdd.setAmount(el.getAmount().divide(asset.getNominalPrice()).setScale(18, RoundingMode.HALF_UP));    
+                            } else {
+                                transactionAdd.setAmount(el.getAmount());    
+                            }
                         } else {
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
@@ -470,6 +478,7 @@ public class FioEbrokerScraper {
     private List<Transaction> interests(List<FioEbrokerTransaction> transactions) {
         return transactions.stream()
                 .filter(el -> el.getComment().contains(el.getAsset() + " - Dividenda") ||
+                        el.getComment().contains(el.getAsset() + " - Úrokový výnos") ||
                         (el.getComment().contains("Vloženo na účet") && el.getComment().contains("MONETA MONEY BANK")))
                 .map(el -> {
 
@@ -478,7 +487,7 @@ public class FioEbrokerScraper {
                         el.setAmount(el.getTotalAmount());
                     }
 
-                    TransactionPart transactionAdd = new TransactionPart();
+                    TransactionMovement transactionAdd = new TransactionMovement();
 
                     Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                     if (currencyOpt.isPresent()) {
@@ -515,7 +524,7 @@ public class FioEbrokerScraper {
                         || el.getComment().contains("Poplatek za připsání dividend"))
                 .map(el -> {
 
-                    TransactionPart transactionRemove = new TransactionPart();
+                    TransactionMovement transactionRemove = new TransactionMovement();
 
                     Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                     if (currencyOpt.isPresent()) {

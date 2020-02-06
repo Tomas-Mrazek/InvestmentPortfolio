@@ -3,10 +3,10 @@ package cz.jaktoviditoka.investmentportfolio.model;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
+import cz.jaktoviditoka.investmentportfolio.entity.Price;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class AlphaVantageClient {
     AssetRepository assetRepository;
 
     @Autowired
-    AssetPriceRepository assetPriceRepository;
+    PriceRepository assetPriceRepository;
 
     @Autowired
     RestTemplate restTemplate;
@@ -45,7 +45,7 @@ public class AlphaVantageClient {
         Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
 
-        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
+        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange).stream()
                 .map(mapper -> mapper.getDate())
                 .collect(Collectors.toList());
 
@@ -73,14 +73,14 @@ public class AlphaVantageClient {
             if (missingDates.contains(date)) {
                 log.debug("Scraping date: {}", date);
 
-                AssetPrice assetPrice = AssetPrice.builder()
+                Price price = Price.builder()
                         .date(LocalDate.parse(el.getKey(), DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                         .asset(asset)
-                        .price(new BigDecimal(el.getValue().get("4. close").asText()))
+                        .priceValue(new BigDecimal(el.getValue().get("4. close").asText()))
                         .priceAsset(priceAsset)
                         .exchange(exchange)
                         .build();
-                assetPriceRepository.save(assetPrice);
+                assetPriceRepository.save(price);
             }
         });
 

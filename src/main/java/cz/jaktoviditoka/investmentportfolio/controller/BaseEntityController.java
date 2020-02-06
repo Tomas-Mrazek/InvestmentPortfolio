@@ -2,27 +2,21 @@ package cz.jaktoviditoka.investmentportfolio.controller;
 
 import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import cz.jaktoviditoka.investmentportfolio.entity.Location;
-import cz.jaktoviditoka.investmentportfolio.job.AssetPriceJob;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.LocationRepository;
 import cz.jaktoviditoka.investmentportfolio.security.HasAdminAuthority;
-import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-@Slf4j
 @HasAdminAuthority
 @RestController
 public class BaseEntityController {
@@ -31,16 +25,10 @@ public class BaseEntityController {
     ExchangeRepository exchangeRepository;
 
     @Autowired
-    AssetRepository assetRepository;
-
-    @Autowired
-    AssetPriceRepository assetPriceRepository;
-
-    @Autowired
     LocationRepository locationRepository;
-
+    
     @Autowired
-    AssetPriceJob assetPrice;
+    AssetRepository assetRepository;
 
     @Autowired
     ModelMapper modelMapper;
@@ -51,8 +39,8 @@ public class BaseEntityController {
     }
 
     @PostMapping("/exchanges")
-    public void createExchange(@RequestBody Exchange exchange) {
-        exchangeRepository.save(exchange);
+    public Exchange createExchange(@RequestBody Exchange exchange) {
+        return exchangeRepository.save(exchange);
     }
 
     @GetMapping("/exchanges/{id}")
@@ -79,31 +67,14 @@ public class BaseEntityController {
         return assetRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    @GetMapping("/assets/import/priceHistory")
-    public List<AssetPrice> getAssetPriceHistory() throws IOException, InterruptedException {
-        assetPrice.createMissingRecords();
-        return assetPriceRepository.findAll();
-    }
-
-    @GetMapping("/assets/import/priceHistorySpecific")
-    public List<AssetPrice> getAssetPriceHistorySpecific(@RequestParam(required = false) Long assetId, @RequestParam(required = false) Long exchangeId)
-            throws IOException, InterruptedException {
-        Asset asset = assetRepository.findById(assetId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        Exchange exchange = exchangeRepository.findById(exchangeId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        assetPrice.createMissingRecords(asset, exchange);
-        return assetPriceRepository.findByAssetAndExchange(asset, exchange);
-    }
-
     @GetMapping("/locations")
     public List<Location> getLocations() {
         return locationRepository.findAll();
     }
 
     @PostMapping("/locations")
-    public void createLocation(@RequestBody Location location) {
-        locationRepository.save(location);
+    public Location createLocation(@RequestBody Location location) {
+        return locationRepository.save(location);
     }
 
     @GetMapping("/locations/{id}")

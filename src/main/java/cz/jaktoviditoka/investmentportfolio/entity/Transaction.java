@@ -32,13 +32,14 @@ public class Transaction {
     TransactionType type;
        
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @JoinColumn
-    TransactionPart in;
+    @JoinColumn(nullable = true)
+    TransactionMovement in;
     
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @JoinColumn
-    TransactionPart out;
+    @JoinColumn(nullable = true)
+    TransactionMovement out;
     
+    @Column(nullable = true)
     String comment;
     
     @Column(nullable = false)

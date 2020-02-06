@@ -7,7 +7,7 @@ import cz.jaktoviditoka.investmentportfolio.model.AlphaVantageClient;
 import cz.jaktoviditoka.investmentportfolio.model.FioCurrencyExchangeRatesScraper;
 import cz.jaktoviditoka.investmentportfolio.model.KurzyCzScraper;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
-import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.LedgerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,13 +20,13 @@ import java.util.Optional;
 
 @Slf4j
 @Component
-public class AssetPriceJob {
+public class PriceJob {
 
     @Autowired
     AssetRepository assetRepository;
 
     @Autowired
-    PortfolioAssetRepository portfolioAssetRepository;
+    LedgerRepository ledgerRepository;
 
     @Autowired
     AlphaVantageClient alphaVantageClient;
@@ -60,17 +60,16 @@ public class AssetPriceJob {
         if (Objects.equals(asset.getTicker(), BASE_CURRENCY)) {
             return;
         }
-        Optional<LocalDate> minDate = portfolioAssetRepository.findMinDateByAssetAndExchange(asset,
-                exchange);
+        Optional<LocalDate> minDate = ledgerRepository.findMinDateByAssetAndExchange(asset, exchange);
         if (minDate.isPresent()) {
             if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.BCPP)
                     || Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.RMS)) {
                 log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "kurzyCzScraper");
                 kurzyCzScraper.scrape(asset, exchange, minDate.get());
-            } else if (Objects.equals(exchange.getAbbreviation(),  ExchangeAbbrEnum.FIO)) {
+            } else if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.FIO)) {
                 log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "fioCurrencyExchangeRatesScraper");
                 fioCurrencyExchangeRatesScraper.scrape(asset, exchange, minDate.get());
-            } else if (Objects.equals(exchange.getAbbreviation(),  ExchangeAbbrEnum.NYSE)) {
+            } else if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.NYSE)) {
                 log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "alphaVantageClient");
                 alphaVantageClient.getAssetHistoricPrice(asset, exchange, minDate.get());
             }

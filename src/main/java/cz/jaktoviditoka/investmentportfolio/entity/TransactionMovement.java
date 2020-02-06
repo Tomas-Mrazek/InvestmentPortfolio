@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import javax.persistence.*;
 
@@ -14,29 +14,39 @@ import javax.persistence.*;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "date", "asset_id", "price_asset_id", "exchange_id" }))
-public class AssetPrice {
+public class TransactionMovement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
-
+    
     @Column(nullable = false)
-    LocalDate date;
-
+    LocalDateTime timestamp;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     Asset asset;
-
+    
     @Column(nullable = false, precision = 38, scale = 18)
-    BigDecimal price;
-
+    BigDecimal amount;
+    
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Asset priceAsset;
-
+    @JoinColumn(nullable = true)
+    Asset feeAsset;
+    
+    @Column(nullable = true, precision = 38, scale = 18)
+    BigDecimal feeAmount;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
+    Asset sourceAsset;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     Exchange exchange;
-
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
+    Location location;
+    
 }

@@ -1,8 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.service;
 
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
-import cz.jaktoviditoka.investmentportfolio.entity.TransactionPart;
-import cz.jaktoviditoka.investmentportfolio.model.Portfolio;
+import cz.jaktoviditoka.investmentportfolio.entity.TransactionMovement;
 import cz.jaktoviditoka.investmentportfolio.repository.TransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,26 +18,25 @@ public class TransactionService {
     TransactionRepository transactionRepository;
     
     @Autowired
-    Portfolio portfolio;
+    LedgerService ledgerService;
 
     @Transactional
     public void process(Transaction transaction) {
-        log.debug("Transaction: {}", transaction);
         transactionRepository.save(transaction);
         
         if (Objects.nonNull(transaction.getOut())) {
-            TransactionPart part = transaction.getOut();
-            portfolio.remove(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
-            if (Objects.nonNull(part.getFeeAmount())) {
-                portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());
+            TransactionMovement movement = transaction.getOut();
+            ledgerService.createEntry(movement.getAmount().negate(), movement.getAsset(), movement.getLocation(), movement.getExchange(), transaction);
+            if (Objects.nonNull(movement.getFeeAmount())) {
+                ledgerService.createEntry(movement.getFeeAmount().negate(), movement.getFeeAsset(), movement.getLocation(), movement.getExchange(), transaction);
             }
         }
         
         if (Objects.nonNull(transaction.getIn())) {
-            TransactionPart part = transaction.getIn();
-            portfolio.add(transaction, part.getAsset(), part.getAmount(), part.getLocation(), part.getExchange());
-            if (Objects.nonNull(part.getFeeAmount())) {
-                portfolio.remove(transaction, part.getFeeAsset(), part.getFeeAmount(), part.getLocation(), part.getExchange());
+            TransactionMovement movement = transaction.getIn();
+            ledgerService.createEntry(movement.getAmount(), movement.getAsset(), movement.getLocation(), movement.getExchange(), transaction);
+            if (Objects.nonNull(movement.getFeeAmount())) {
+                ledgerService.createEntry(movement.getFeeAmount().negate(), movement.getFeeAsset(), movement.getLocation(), movement.getExchange(), transaction);
             }
         }
 

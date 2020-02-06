@@ -1,33 +1,62 @@
 package cz.jaktoviditoka.investmentportfolio.service;
 
-import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetGroupedDto;
-import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayValueDto;
-import cz.jaktoviditoka.investmentportfolio.model.Portfolio;
-import cz.jaktoviditoka.investmentportfolio.repository.PortfolioAssetRepository;
+import cz.jaktoviditoka.investmentportfolio.domain.PortfolioAssetPerDay;
+import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayResponse;
+import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetResponse;
+import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
+import cz.jaktoviditoka.investmentportfolio.model.PortfolioManagement;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class PortfolioService {
 
     @Autowired
-    PortfolioAssetRepository portfolioAssetRepository;
-    
+    PortfolioManagement portfolio;
+
     @Autowired
-    Portfolio portfolio;
-    
-    public List<PortfolioAssetGroupedDto> getPortfolio(Long userId) {
-        return portfolioAssetRepository.findAllGroupedPerDay(userId);
+    ModelMapper modelMapper;
+
+    public List<PortfolioAssetPerDayResponse> getPortfolioPerDay(AppUser appuser) {
+        List<PortfolioAssetPerDay> listOfPaapd = portfolio.portfolioPerDay(appuser);
+        List<PortfolioAssetPerDayResponse> listOfPaapdDto = new ArrayList<>();
+
+        listOfPaapd.stream().forEach(el -> {
+            PortfolioAssetPerDayResponse paapdDto = PortfolioAssetPerDayResponse.builder()
+                    .date(el.getDate())
+                    .assets(new ArrayList<>())
+                    .build();
+
+            el.getAssets().stream().forEach(asset -> {
+                paapdDto.getAssets().add(modelMapper.map(asset, PortfolioAssetResponse.class));
+            });
+
+            paapdDto.getAssets().sort(Comparator
+                    .comparing(PortfolioAssetResponse::getAssetType)
+                    .thenComparing(PortfolioAssetResponse::getAssetName));
+
+            listOfPaapdDto.add(paapdDto);
+        });
+
+        return listOfPaapdDto;
     }
-    
-    public List<PortfolioAssetGroupedDto> getPortfolioPerDay(Long userId) {
-        return portfolio.portfolioPerDay(userId);
+
+    public List<PortfolioAssetResponse> getPortfolioPerDayTest(AppUser appuser) {
+        return portfolio.portfolioPerDayTest(appuser);
     }
-    
-    public List<PortfolioAssetPerDayValueDto> getPortfolioPerDayValue(Long userId) {
-        return portfolio.portfolioPerDayValue(userId);
+
+    public BigDecimal amountInvested(AppUser appuser) {
+        return portfolio.amountInvested(appuser);
+    }
+
+    public BigDecimal value(AppUser appuser) {
+        return portfolio.value(appuser);
     }
     
 }

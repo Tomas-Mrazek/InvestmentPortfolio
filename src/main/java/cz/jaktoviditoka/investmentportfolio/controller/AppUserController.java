@@ -6,9 +6,7 @@ import cz.jaktoviditoka.investmentportfolio.dto.AppUserResponse;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.security.HasAdminAuthority;
 import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
-import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
 import cz.jaktoviditoka.investmentportfolio.service.AppUserService;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @RestController
 @RequestMapping("/users")
 public class AppUserController {
@@ -28,9 +25,6 @@ public class AppUserController {
 
     @Autowired
     ModelMapper modelMapper;
-    
-    @Autowired
-    PasswordCryptoProvider passwordCryptoProvider;
 
     @PostMapping("/register")
     public void register(@RequestBody AppUserRequest user) {
@@ -49,27 +43,26 @@ public class AppUserController {
         }
 
     }
-    
-    @HasAnyAuthority
-    @PatchMapping
-    public void updateUser(@RequestBody AppUserFioEbrokerRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        AppUser user = appUserService.getUser(email);
-        user.setFioEbrokerUsername(request.getUsername());
-        user.setFioEbrokerPassword(passwordCryptoProvider.encrypt(request.getPassword()));
-        appUserService.updateUser(user);
-    }
 
     @HasAdminAuthority
     @GetMapping("/{id}")
     public AppUserResponse getUserById(@RequestParam Long id) {
         return modelMapper.map(appUserService.getUser(id), AppUserResponse.class);
     }
+    
+    @HasAnyAuthority
+    @PatchMapping("/{id}/fio-ebroker-credentials")
+    public void updateFioEbrokerCredentials(@RequestBody AppUserFioEbrokerRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppUser user = appUserService.getUser(username);
+        appUserService.updateFioEbrokerCredentials(user, request.getUsername(), request.getPassword());
+    }
 
     @HasAdminAuthority
     @PatchMapping("/{id}/disable")
     public void disable(@RequestParam Long id) {
-        appUserService.disableUser(id);
+        AppUser user = appUserService.getUser(id);
+        appUserService.disableUser(user);
     }
     
     //TODO roles

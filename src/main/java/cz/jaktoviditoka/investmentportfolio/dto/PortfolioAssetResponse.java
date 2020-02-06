@@ -1,39 +1,25 @@
 package cz.jaktoviditoka.investmentportfolio.dto;
 
-import lombok.AccessLevel;
-import lombok.Data;
+import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
-import javax.validation.constraints.NotNull;
-
-@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Data
 public class PortfolioAssetResponse {
 
-    @NotNull
-    Long id;
-    
-    @NotNull
-    Long userId;
-    
-    @NotNull
-    LocalDate date;
-    
-    @NotNull
     Long assetId;
-    
-    @NotNull
+    String assetName;
+    String assetTicker;
+    AssetType assetType;
+    String exchange;
+    String location;
     BigDecimal amount;
-    
-    Long exchangeId;
-    
-    @NotNull
-    Long locationId;
-    
-    @NotNull
-    Long transactionId;
+    BigDecimal value;
     
 }

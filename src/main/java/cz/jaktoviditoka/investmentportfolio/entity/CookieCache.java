@@ -8,10 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -25,18 +22,25 @@ public class CookieCache {
     @CreatedDate
     LocalDateTime createdAt;
     
+    @Column
     String name;
     
+    @Column
     String value;
     
+    @Column
     String domain;
     
+    @Column
     String path;
     
+    @Column
     Date expires;
     
+    @Column
     boolean secure;
     
+    @Column
     boolean httponly;
     
 }

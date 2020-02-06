@@ -1,10 +1,11 @@
 package cz.jaktoviditoka.investmentportfolio.model;
 
+import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
+import cz.jaktoviditoka.investmentportfolio.entity.Price;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,10 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,7 +33,7 @@ public class KurzyCzScraper {
     AssetRepository assetRepository;
 
     @Autowired
-    AssetPriceRepository assetPriceRepository;
+    PriceRepository priceRepository;
 
     private static final String URL_TEMPLATE = "https://akcie-cz.kurzy.cz/prehled.asp?T=PK&CP=${assetId}&MAXROWS=1&Day=${date}";
     private static final String PRICE_ASSET = "CZK";
@@ -46,8 +44,13 @@ public class KurzyCzScraper {
 
         Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
+        if (Objects.equals(asset.getType(), AssetType.BOND)) {
+            priceAsset = null;
+        }
 
-        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
+        List<LocalDate> existingDates = priceRepository
+                .findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange)
+                .stream()
                 .map(mapper -> mapper.getDate())
                 .collect(Collectors.toList());
 
@@ -77,25 +80,25 @@ public class KurzyCzScraper {
             Elements rows = table.select("tr.ps, tr.pl");
             Element row = rows.first();
 
-            BigDecimal price;
+            BigDecimal priceValue;
             if (BooleanUtils.isNotTrue(StringUtils.isBlank(row.child(columnPrice).text()))) {
-                price = new BigDecimal(StringUtils.deleteWhitespace(row.child(columnPrice).text()));
+                priceValue = new BigDecimal(StringUtils.deleteWhitespace(row.child(columnPrice).text()));
             } else {
-                price = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
+                priceValue = priceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange).stream()
                         .filter(el -> el.getDate().isBefore(date))
                         .max((el1, el2) -> el1.getDate().compareTo(el2.getDate()))
                         .orElseThrow(() -> new IllegalArgumentException("Unknown price."))
-                        .getPrice();
+                        .getPriceValue();
             }
 
-            AssetPrice assetPrice = AssetPrice.builder()
+            Price price = Price.builder()
                     .date(date)
                     .asset(asset)
-                    .price(price)
+                    .priceValue(priceValue)
                     .priceAsset(priceAsset)
                     .exchange(exchange)
                     .build();
-            assetPriceRepository.save(assetPrice);
+            priceRepository.save(price);
 
             Thread.sleep(new Random().nextInt(20) + 200l);
         }

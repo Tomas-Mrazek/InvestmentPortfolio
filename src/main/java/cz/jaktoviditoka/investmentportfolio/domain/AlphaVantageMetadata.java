@@ -1,4 +1,4 @@
-package cz.jaktoviditoka.investmentportfolio.dto;
+package cz.jaktoviditoka.investmentportfolio.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;

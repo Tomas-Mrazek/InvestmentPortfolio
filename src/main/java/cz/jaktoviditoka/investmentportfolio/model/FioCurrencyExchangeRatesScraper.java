@@ -4,10 +4,10 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
-import cz.jaktoviditoka.investmentportfolio.entity.AssetPrice;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetPriceRepository;
+import cz.jaktoviditoka.investmentportfolio.entity.Price;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class FioCurrencyExchangeRatesScraper {
     AssetRepository assetRepository;
     
     @Autowired
-    AssetPriceRepository assetPriceRepository;
+    PriceRepository priceRepository;
 
     WebClient webClient = new WebClient();
     
@@ -46,7 +46,7 @@ public class FioCurrencyExchangeRatesScraper {
         Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
 
-        List<LocalDate> existingDates = assetPriceRepository.findByAssetAndExchange(asset, exchange).stream()
+        List<LocalDate> existingDates = priceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange).stream()
                 .map(mapper -> mapper.getDate())
                 .collect(Collectors.toList());
         
@@ -61,38 +61,38 @@ public class FioCurrencyExchangeRatesScraper {
 
             HtmlTextInput dateInput = page.getElementByName("keDni_den");
             HtmlSubmitInput submit = page.getElementByName("keDni_submit");
-            dateInput.type(date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            dateInput.setText(date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
             HtmlPage result = submit.click();
             HtmlTable table = (HtmlTable) result.getByXPath(".//table[@class='tbl-sazby']").get(0);
             HtmlTableBody body = table.getBodies().get(0);
             List<HtmlTableRow> rows = body.getByXPath(".//tr[@class='odd' or @class='even']");
-            for (HtmlTableRow row : rows) {
+            for (HtmlTableRow row : rows) {               
                 CellIterator iterator = row.getCellIterator();
-                if (Objects.equals(iterator.next().asText(), asset.getTicker())) {
+                if (Objects.equals(iterator.next().asText(), asset.getTicker())) {                    
                     iterator.next();
                     iterator.next();
                     iterator.next();
 
-                    BigDecimal sellPrice = new BigDecimal(iterator.next().asText().replace(",", "."));
-                    BigDecimal buyPrice = new BigDecimal(iterator.next().asText().replace(",", "."));
+                    BigDecimal sellPriceValue = new BigDecimal(iterator.next().asText().replace(",", "."));
+                    BigDecimal buyPriceValue = new BigDecimal(iterator.next().asText().replace(",", "."));
 
-                    AssetPrice sellAssetPrice = AssetPrice.builder()
+                    Price sellPrice = Price.builder()
                             .date(date)
                             .asset(asset)
-                            .price(sellPrice)
+                            .priceValue(sellPriceValue)
                             .priceAsset(priceAsset)
                             .exchange(exchange)
                             .build();
-                    assetPriceRepository.save(sellAssetPrice);
+                    priceRepository.save(sellPrice);
                     
-                    AssetPrice buyAssetPrice = AssetPrice.builder()
+                    Price buzPrice = Price.builder()
                             .date(date)
                             .asset(priceAsset)
-                            .price(BigDecimal.ONE.divide(buyPrice, 5, RoundingMode.HALF_UP))
+                            .priceValue(BigDecimal.ONE.divide(buyPriceValue, 5, RoundingMode.HALF_UP))
                             .priceAsset(asset)
                             .exchange(exchange)
                             .build();
-                    assetPriceRepository.save(buyAssetPrice);
+                    priceRepository.save(buzPrice);
                 }
             }
 

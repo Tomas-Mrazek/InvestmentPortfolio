@@ -16,11 +16,11 @@ public class Exchange {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     String name;
     
     @Enumerated(EnumType.STRING)
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     ExchangeAbbrEnum abbreviation;
 
 }

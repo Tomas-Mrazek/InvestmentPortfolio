@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.persistence.*;
@@ -18,20 +19,28 @@ public class Asset {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     String ticker;
 
-    @Column(unique = true)
+    @Column(nullable = true, unique = true)
     String scraperId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     AssetType type;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
+    Asset nominalPriceAsset;
+    
+    @Column(nullable = true, precision = 38, scale = 18)
+    BigDecimal nominalPrice;
 
     @ManyToMany(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
     List<Exchange> exchanges;
 
 }

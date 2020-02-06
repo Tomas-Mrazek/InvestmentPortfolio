@@ -14,7 +14,7 @@ import javax.persistence.*;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-public class PortfolioAsset {
+public class Ledger {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,19 +27,19 @@ public class PortfolioAsset {
     @Column(nullable = false)
     LocalDate date;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Asset asset;
-    
     @Column(nullable = false, precision = 38, scale = 18)
     BigDecimal amount;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn
+    @JoinColumn(nullable = false)
+    Asset asset;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
     Exchange exchange;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn
+    @JoinColumn(nullable = true)
     Location location;
     
     @ManyToOne(fetch = FetchType.LAZY)
