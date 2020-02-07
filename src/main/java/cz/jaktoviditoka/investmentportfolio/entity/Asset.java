@@ -1,17 +1,19 @@
 package cz.jaktoviditoka.investmentportfolio.entity;
 
 import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
-import lombok.AccessLevel;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import javax.persistence.*;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
 public class Asset {
 
@@ -19,15 +21,19 @@ public class Asset {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(nullable = false, unique = true)
+    @EqualsAndHashCode.Include
+    @Column(nullable = false)
     String name;
 
-    @Column(nullable = false, unique = true)
+    @EqualsAndHashCode.Include
+    @Column(nullable = true)
     String ticker;
+    
+    @EqualsAndHashCode.Include
+    @Column(nullable = false, unique = true)
+    String isin;
 
-    @Column(nullable = true, unique = true)
-    String scraperId;
-
+    @EqualsAndHashCode.Include
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     AssetType type;
@@ -38,9 +44,5 @@ public class Asset {
     
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal nominalPrice;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = true)
-    List<Exchange> exchanges;
 
 }

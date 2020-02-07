@@ -25,6 +25,7 @@
         <modelmapper.version>2.3.4</modelmapper.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <commons-text.version>1.6</commons-text.version>
+        <commons-csv.version>1.7</commons-csv.version>
     </properties>
 
     <dependencies>
@@ -121,6 +122,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
             <version>${commons-text.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
         </dependency>
 
         <dependency>

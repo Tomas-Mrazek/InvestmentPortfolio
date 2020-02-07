@@ -441,20 +441,12 @@ public class FioEbrokerScraper {
                     
                     if (Objects.equals(transactionRemove.getAsset().getType(), AssetType.CURRENCY)) {
                         transactionRemove.setExchange(defaultCurrencyExchange);
-                    }else if (transactionRemove.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
-                        transactionRemove.setExchange(defaultCzechStockExchange);
-                    } else if (transactionRemove.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
-                        transactionRemove.setExchange(defaultForeignStockExchange);
                     } else {
                         throw new IllegalArgumentException("Missing exchange.");
                     }
                     
                     if (Objects.equals(transactionAdd.getAsset().getType(), AssetType.CURRENCY)) {
                         transactionAdd.setExchange(defaultCurrencyExchange);
-                    }else if (transactionAdd.getAsset().getExchanges().contains(defaultCzechStockExchange)) {
-                        transactionAdd.setExchange(defaultCzechStockExchange);
-                    } else if (transactionAdd.getAsset().getExchanges().contains(defaultForeignStockExchange)) {
-                        transactionAdd.setExchange(defaultForeignStockExchange);
                     } else {
                         throw new IllegalArgumentException("Missing exchange.");
                     }

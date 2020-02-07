@@ -121,10 +121,10 @@ public class PortfolioManagement {
 
             if (Objects.nonNull(asset.getNominalPriceAsset())) {
                 return Optional.of(asset.getNominalPrice()
-                        .multiply(czkPrice.get().getPriceValue())
+                        .multiply(czkPrice.get().getClosingPrice())
                         .divide(BigDecimal.valueOf(100), 18, RoundingMode.HALF_UP));
             } else {
-                return Optional.of(czkPrice.get().getPriceValue());
+                return Optional.of(czkPrice.get().getClosingPrice());
             }
 
         } else {
@@ -146,7 +146,7 @@ public class PortfolioManagement {
                         .findAny();
 
                 if (czkUsdPair.isPresent()) {
-                    return Optional.of(czkUsdPair.get().getPriceValue().multiply(usdPrice.get().getPriceValue()));
+                    return Optional.of(czkUsdPair.get().getClosingPrice().multiply(usdPrice.get().getClosingPrice()));
                 } else {
                     return Optional.empty();
                 }

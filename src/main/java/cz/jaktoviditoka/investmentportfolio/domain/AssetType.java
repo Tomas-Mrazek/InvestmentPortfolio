@@ -2,6 +2,6 @@ package cz.jaktoviditoka.investmentportfolio.domain;
 
 public enum AssetType {
 
-    CURRENCY, STOCK, BOND, COMMODITY, CRYPTOCURRENCY
+    CURRENCY, STOCK, BOND, SHARE, COMMODITY, CRYPTOCURRENCY, UNKNOWN
     
 }

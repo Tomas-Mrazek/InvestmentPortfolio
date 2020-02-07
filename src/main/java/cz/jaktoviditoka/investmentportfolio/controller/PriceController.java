@@ -8,6 +8,7 @@ import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,14 +20,15 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @HasAnyAuthority
 @RestController
 @RequestMapping("/price")
 public class PriceController {
-
+    
     @Autowired
     ExchangeRepository exchangeRepository;
-    
+
     @Autowired
     AssetRepository assetRepository;
     
@@ -57,5 +59,5 @@ public class PriceController {
         assetPrice.createMissingRecords(asset, exchange);
         return assetPriceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange);
     }
-    
+
 }

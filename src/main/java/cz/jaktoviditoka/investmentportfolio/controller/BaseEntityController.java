@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 
 @HasAdminAuthority
 @RestController
@@ -49,9 +49,9 @@ public class BaseEntityController {
     }
 
     @GetMapping("/assets")
-    public List<Asset> getAssets(@RequestParam(required = false) AssetType type) {
-        if (Objects.nonNull(type)) {
-            return assetRepository.findByType(type);
+    public List<Asset> getAssets(Optional<AssetType> type) {
+        if (type.isPresent()) {
+            return assetRepository.findByType(type.get());
         } else {
             return assetRepository.findAll();
         }

@@ -76,7 +76,7 @@ public class AlphaVantageClient {
                 Price price = Price.builder()
                         .date(LocalDate.parse(el.getKey(), DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                         .asset(asset)
-                        .priceValue(new BigDecimal(el.getValue().get("4. close").asText()))
+                        .closingPrice(new BigDecimal(el.getValue().get("4. close").asText()))
                         .priceAsset(priceAsset)
                         .exchange(exchange)
                         .build();

@@ -5,7 +5,6 @@ import cz.jaktoviditoka.investmentportfolio.entity.Asset;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import cz.jaktoviditoka.investmentportfolio.model.AlphaVantageClient;
 import cz.jaktoviditoka.investmentportfolio.model.FioCurrencyExchangeRatesScraper;
-import cz.jaktoviditoka.investmentportfolio.model.KurzyCzScraper;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.LedgerRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +31,6 @@ public class PriceJob {
     AlphaVantageClient alphaVantageClient;
 
     @Autowired
-    KurzyCzScraper kurzyCzScraper;
-
-    @Autowired
     FioCurrencyExchangeRatesScraper fioCurrencyExchangeRatesScraper;
 
     private static final String BASE_CURRENCY = "CZK";
@@ -49,9 +45,7 @@ public class PriceJob {
             if (Objects.equals(asset.getTicker(), BASE_CURRENCY)) {
                 continue;
             }
-            for (Exchange exchange : asset.getExchanges()) {
-                createMissingRecords(asset, exchange);
-            }
+            //createMissingRecords(asset, exchange);
         }
 
     }
@@ -62,11 +56,7 @@ public class PriceJob {
         }
         Optional<LocalDate> minDate = ledgerRepository.findMinDateByAssetAndExchange(asset, exchange);
         if (minDate.isPresent()) {
-            if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.BCPP)
-                    || Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.RMS)) {
-                log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "kurzyCzScraper");
-                kurzyCzScraper.scrape(asset, exchange, minDate.get());
-            } else if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.FIO)) {
+            if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.FIO)) {
                 log.debug(LOG_MESSAGE, asset, exchange, minDate.get(), "fioCurrencyExchangeRatesScraper");
                 fioCurrencyExchangeRatesScraper.scrape(asset, exchange, minDate.get());
             } else if (Objects.equals(exchange.getAbbreviation(), ExchangeAbbrEnum.NYSE)) {

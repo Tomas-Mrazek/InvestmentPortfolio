@@ -79,7 +79,7 @@ public class FioCurrencyExchangeRatesScraper {
                     Price sellPrice = Price.builder()
                             .date(date)
                             .asset(asset)
-                            .priceValue(sellPriceValue)
+                            .closingPrice(sellPriceValue)
                             .priceAsset(priceAsset)
                             .exchange(exchange)
                             .build();
@@ -88,7 +88,7 @@ public class FioCurrencyExchangeRatesScraper {
                     Price buzPrice = Price.builder()
                             .date(date)
                             .asset(priceAsset)
-                            .priceValue(BigDecimal.ONE.divide(buyPriceValue, 5, RoundingMode.HALF_UP))
+                            .closingPrice(BigDecimal.ONE.divide(buyPriceValue, 5, RoundingMode.HALF_UP))
                             .priceAsset(asset)
                             .exchange(exchange)
                             .build();
