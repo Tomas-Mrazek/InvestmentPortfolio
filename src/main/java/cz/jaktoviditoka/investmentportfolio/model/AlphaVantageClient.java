@@ -42,7 +42,7 @@ public class AlphaVantageClient {
     public void getAssetHistoricPrice(Asset asset, Exchange exchange, LocalDate scrapeDate) throws IOException {
         log.trace("Scraping...");
 
-        Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
+        Asset priceAsset = assetRepository.findByTicker(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
 
         List<LocalDate> existingDates = assetPriceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange).stream()

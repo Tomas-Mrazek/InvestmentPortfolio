@@ -43,7 +43,7 @@ public class FioCurrencyExchangeRatesScraper {
     public void scrape(Asset asset, Exchange exchange, LocalDate scrapeDate) throws IOException, InterruptedException {
         log.trace("Scraping...");
         
-        Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
+        Asset priceAsset = assetRepository.findByTicker(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found"));
 
         List<LocalDate> existingDates = priceRepository.findByAssetAndPriceAssetAndExchange(asset, priceAsset, exchange).stream()

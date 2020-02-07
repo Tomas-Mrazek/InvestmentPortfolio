@@ -59,7 +59,7 @@ public class PortfolioManagement {
     }
 
     public List<PortfolioAssetResponse> portfolioPerDayTest(AppUser appUser) {
-        Asset priceAsset = assetRepository.findByName(PRICE_ASSET)
+        Asset priceAsset = assetRepository.findByTicker(PRICE_ASSET)
                 .orElseThrow(() -> new IllegalArgumentException("Price asset not found."));
         List<Ledger> portfolio = ledgerRepository.findByUser(appUser);
         return portfolio.stream()
@@ -135,7 +135,7 @@ public class PortfolioManagement {
 
             if (usdPrice.isPresent()) {
 
-                Asset usd = assetRepository.findByName("USD").orElseThrow();
+                Asset usd = assetRepository.findByTicker("USD").orElseThrow();
                 Exchange fio = exchangeRepository.findByAbbreviation(ExchangeAbbrEnum.FIO).orElseThrow();
 
                 Optional<Price> czkUsdPair = assetPriceRepository

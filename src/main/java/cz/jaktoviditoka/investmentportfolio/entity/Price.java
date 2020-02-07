@@ -36,10 +36,15 @@ public class Price {
     @JoinColumn(nullable = false)
     Asset priceAsset;
     
+    @EqualsAndHashCode.Include
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    Exchange exchange;
+    
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal openingPrice;
     
-    @Column(nullable = false, precision = 38, scale = 18)
+    @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal closingPrice;
     
     @Column(nullable = true, precision = 38, scale = 18)
@@ -56,10 +61,5 @@ public class Price {
     
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal turnover;
-
-    @EqualsAndHashCode.Include
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Exchange exchange;
 
 }

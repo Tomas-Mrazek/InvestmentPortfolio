@@ -13,12 +13,12 @@ import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -33,12 +33,15 @@ public class ImportService {
 
     @Autowired
     ExchangeRepository exchangeRepository;
-    
+
     @Autowired
     PriceRepository priceRepository;
 
     @Autowired
     KurzyCzClient kurzyCzClient;
+    
+    @Autowired
+    ObjectMapper objectMapper;
 
     private static final LocalDate BCPP_INIT_DATE = LocalDate.of(2001, 10, 1);
 
@@ -50,15 +53,12 @@ public class ImportService {
 
     public void importKurzyCzToFile(Exchange exchange, LocalDate from, LocalDate to)
             throws IOException, InterruptedException {
-
-        List<KurzyCzPrice> prices = new ArrayList<>();
-
-        ObjectMapper objectMapper = new ObjectMapper();
         String fileName = "KurzyCZ_" + exchange.getAbbreviation() + "_"
                 + from.format(DateTimeFormatter.ISO_DATE) + "_" + to.format(DateTimeFormatter.ISO_DATE) + ".json";
         File file = new File(fileName);
         if (!file.exists()) {
             List<LocalDate> dates = from.datesUntil(to.plusDays(1)).collect(Collectors.toList());
+            List<KurzyCzPrice> prices = new ArrayList<>();
             for (LocalDate date : dates) {
                 prices.add(kurzyCzClient.importPrice(exchange, date));
                 Thread.sleep(new Random().nextInt(10) + 50l);
@@ -68,20 +68,15 @@ public class ImportService {
     }
 
     public void importAssetFromKurzyCzFile() throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-
         File file = new File("KurzyCZ_BCPP_2001-10-01_2020-02-06.json");
         if (file.exists()) {
             List<KurzyCzPrice> prices = objectMapper.readValue(file, new TypeReference<List<KurzyCzPrice>>() {
             });
-            prices.stream()
+            List<Asset> assets = prices.stream()
                     .map(map -> map.getListOfPrices())
                     .flatMap(Collection::stream)
                     .map(map -> {
-                        String ticker = null;
-                        if (!map.getBic().equals("-")) {
-                            ticker = map.getBic();
-                        }
+                        String ticker = hyphenToNull(map.getBic());
 
                         AssetType type;
                         if (map.getBic().startsWith("BA") || map.getBic().startsWith("BF")) {
@@ -103,53 +98,64 @@ public class ImportService {
                                 .build();
                     })
                     .distinct()
-                    .forEach(el -> {
-                        assetRepository.save(el);
-                    });
+                    .collect(Collectors.toList());
+            log.debug("Saving assets to database...");
+            assetRepository.saveAll(assets);
 
         }
     }
 
     public void importPriceFromKurzyCzFile() throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-
         File file = new File("KurzyCZ_BCPP_2001-10-01_2020-02-06.json");
         if (file.exists()) {
-            List<KurzyCzPrice> prices = objectMapper.readValue(file, new TypeReference<List<KurzyCzPrice>>() {
-            });
-            Asset priceAsset = assetRepository.findByTicker("CZK").orElseThrow();
+            List<Asset> assets = assetRepository.findAll();
+            Asset priceAsset = assets.stream()
+                    .filter(el -> Objects.equals(el.getTicker(), "CZK"))
+                    .findAny()
+                    .orElseThrow();
+            
             Exchange exchange = exchangeRepository.findByAbbreviation(ExchangeAbbrEnum.BCPP).orElseThrow();
-            prices.stream()
+            
+            List<KurzyCzPrice> kurzyCzPrices = objectMapper.readValue(file, new TypeReference<List<KurzyCzPrice>>() {
+            });
+            List<Price> prices = kurzyCzPrices.stream()
                     .map(map -> map.getListOfPrices())
                     .flatMap(Collection::stream)
                     .map(map -> {
-                        Asset asset;
-                        Optional<Asset> assetOpt = assetRepository.findByIsin(map.getIsin());
+                        Optional<Asset> assetOpt = assets.stream()
+                                .filter(el -> Objects.equals(el.getIsin(), map.getIsin()))
+                                .findAny();
                         if (assetOpt.isEmpty()) {
                             log.debug("ISIN not found. -> {}", map);
                             return null;
                         } else {
-                            asset = assetOpt.get();
+                            return Price.builder()
+                                    .date(LocalDate.parse(map.getTradingDay(), DateTimeFormatter.ofPattern("d.M.yyyy")))
+                                    .asset(assetOpt.get())
+                                    .exchange(exchange)
+                                    .priceAsset(priceAsset)
+                                    .openingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceOpen())))
+                                    .closingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceClose())))
+                                    .priceChange(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceChange())))
+                                    .minPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMinDay())))
+                                    .maxPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMaxDay())))
+                                    .volume(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeShares())))
+                                    .turnover(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeVolume())))
+                                    .build();
                         }
-                        return Price.builder()
-                                .date(LocalDate.parse(map.getTradingDay()))
-                                .asset(asset)
-                                .exchange(exchange)
-                                .priceAsset(priceAsset)
-                                .openingPrice(new BigDecimal(map.getPriceOpen()))
-                                .closingPrice(new BigDecimal(map.getPriceClose()))
-                                .priceChange(new BigDecimal(map.getPriceChange()))
-                                .minPrice(new BigDecimal(map.getPriceMinDay()))
-                                .maxPrice(new BigDecimal(map.getPriceMaxDay()))
-                                .volume(new BigDecimal(map.getTradeShares()))
-                                .turnover(new BigDecimal(map.getTradeVolume()))
-                                .build();
                     })
                     .distinct()
-                    .forEach(el -> {
-                        priceRepository.save(el);
-                    });
+                    .collect(Collectors.toList());
+            log.debug("Saving prices to database...");
+            priceRepository.saveAll(prices);
+        }
+    }
 
+    private String hyphenToNull(String value) {
+        if (value.equals("-")) {
+            return null;
+        } else {
+            return value;
         }
     }
 

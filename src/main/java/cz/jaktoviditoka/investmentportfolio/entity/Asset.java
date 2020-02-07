@@ -30,7 +30,7 @@ public class Asset {
     String ticker;
     
     @EqualsAndHashCode.Include
-    @Column(nullable = false, unique = true)
+    @Column(nullable = true, unique = true)
     String isin;
 
     @EqualsAndHashCode.Include
