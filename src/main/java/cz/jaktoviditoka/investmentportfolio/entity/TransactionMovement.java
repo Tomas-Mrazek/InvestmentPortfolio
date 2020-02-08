@@ -45,8 +45,7 @@ public class TransactionMovement {
     @JoinColumn(nullable = false)
     Exchange exchange;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = true)
-    Location location;
+    @Column(nullable = true)
+    String location;
     
 }

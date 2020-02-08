@@ -18,7 +18,7 @@ public class LedgerService {
         return ledgerRepository.findByUser(appUser);
     }
     
-    public Ledger createEntry(BigDecimal amount, Asset asset, Location location, Exchange exchange, Transaction transaction) {
+    public Ledger createEntry(BigDecimal amount, Asset asset, String location, Exchange exchange, Transaction transaction) {
         Ledger ledger = Ledger.builder()
                 .date(transaction.getTimestamp().toLocalDate())
                 .user(transaction.getUser())

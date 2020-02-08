@@ -87,7 +87,7 @@ public class PortfolioManagement {
                                             .assetTicker(asset.getKey().getTicker())
                                             .assetType(asset.getKey().getType())
                                             .exchange(exchange.getKey().getAbbreviation().name())
-                                            .location(location.getKey().getName())
+                                            .location(location.getKey())
                                             .amount(amount)
                                             .value(price.isPresent()
                                                     ? amount.multiply(price.get()).setScale(18, RoundingMode.HALF_UP)

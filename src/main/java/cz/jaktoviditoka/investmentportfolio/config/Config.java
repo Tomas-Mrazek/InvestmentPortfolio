@@ -1,5 +1,8 @@
 package cz.jaktoviditoka.investmentportfolio.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import cz.jaktoviditoka.investmentportfolio.dto.transaction.TransactionTradeRequest;
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
 import cz.jaktoviditoka.investmentportfolio.entity.TransactionMovement;
@@ -20,6 +23,14 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class Config {
 
+    @Bean
+    public ObjectMapper createObjectMapper() {  
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
+    
     @Bean
     ModelMapper modelMapper() {
         ModelMapper modelMapper = new ModelMapper();

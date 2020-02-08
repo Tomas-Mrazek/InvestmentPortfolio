@@ -4,6 +4,10 @@ import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters.ZoneIdConverter;
+
+import java.time.LocalTime;
+import java.time.ZoneId;
 
 import javax.persistence.*;
 
@@ -22,5 +26,15 @@ public class Exchange {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true)
     ExchangeAbbrEnum abbreviation;
+    
+    @Column(nullable = true)
+    LocalTime openingTime;
+    
+    @Column(nullable = true)
+    LocalTime closingTime;
+    
+    @Convert(converter = ZoneIdConverter.class)
+    @Column(nullable = true)
+    ZoneId timezone;
 
 }

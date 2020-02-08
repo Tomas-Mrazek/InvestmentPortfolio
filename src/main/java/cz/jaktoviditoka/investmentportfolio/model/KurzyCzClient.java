@@ -52,7 +52,7 @@ public class KurzyCzClient {
     RestTemplate restTemplate;
 
     @Transactional
-    public KurzyCzPrice importPrice(Exchange exchange, LocalDate date) throws IOException, InterruptedException {
+    public KurzyCzPrice importPrice(Exchange exchange, LocalDate date) throws IOException {
         log.debug("Importing CSV – {}", date.format(DateTimeFormatter.ofPattern("d.M.yyyy")));
 
         List<KurzyCzPriceDay> listOfPricesDay = new ArrayList<>();

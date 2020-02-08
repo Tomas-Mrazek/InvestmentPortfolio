@@ -9,7 +9,10 @@ import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
 import cz.jaktoviditoka.investmentportfolio.domain.FioEbrokerTransaction;
 import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
-import cz.jaktoviditoka.investmentportfolio.repository.*;
+import cz.jaktoviditoka.investmentportfolio.repository.AppUserRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.CookieCacheRepository;
+import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.security.PasswordCryptoProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -44,9 +47,6 @@ public class FioEbrokerScraper {
     ExchangeRepository exchangeRepository;
 
     @Autowired
-    LocationRepository locationRepository;
-
-    @Autowired
     CookieCacheRepository cookieCacheRepository;
 
     @Autowired
@@ -73,7 +73,6 @@ public class FioEbrokerScraper {
     Exchange defaultCurrencyExchange;
     Exchange defaultCzechStockExchange;
     Exchange defaultForeignStockExchange;
-    Location defaultLocation;
 
     private void login(String username, String password) throws IOException {
         List<CookieCache> cookies = cookieCacheRepository.findAll();
@@ -134,7 +133,6 @@ public class FioEbrokerScraper {
         defaultCurrencyExchange = exchangeRepository.findByAbbreviation(DEFAULT_CURRENCY_EXCHANGE).orElseThrow();
         defaultCzechStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_CZECH_STOCK_EXCHANGE).orElseThrow();
         defaultForeignStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_FOREIGN_STOCK_EXCHANGE).orElseThrow();
-        defaultLocation = locationRepository.findByName(DEFAULT_LOCATION_NAME).orElseThrow();
 
         LocalDate from = LocalDate.now().minusYears(1);
         LocalDate to = LocalDate.now();
@@ -308,7 +306,7 @@ public class FioEbrokerScraper {
                         throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                     }
 
-                    transactionAdd.setLocation(defaultLocation);
+                    transactionAdd.setLocation(DEFAULT_LOCATION_NAME);
 
                     transactionAdd.setExchange(defaultCurrencyExchange);
 
@@ -451,8 +449,8 @@ public class FioEbrokerScraper {
                         throw new IllegalArgumentException("Missing exchange.");
                     }
 
-                    transactionRemove.setLocation(defaultLocation);
-                    transactionAdd.setLocation(defaultLocation);
+                    transactionRemove.setLocation(DEFAULT_LOCATION_NAME);
+                    transactionAdd.setLocation(DEFAULT_LOCATION_NAME);
 
                     return Transaction.builder()
                             .timestamp(el.getTimestamp())
@@ -494,7 +492,7 @@ public class FioEbrokerScraper {
                         transactionAdd.setSourceAsset(sourceAssetOpt.get());
                     }
 
-                    transactionAdd.setLocation(defaultLocation);
+                    transactionAdd.setLocation(DEFAULT_LOCATION_NAME);
                     transactionAdd.setExchange(defaultCurrencyExchange);
 
                     return Transaction.builder()
@@ -531,7 +529,7 @@ public class FioEbrokerScraper {
                         transactionRemove.setSourceAsset(sourceAssetOpt.get());
                     }
 
-                    transactionRemove.setLocation(defaultLocation);
+                    transactionRemove.setLocation(DEFAULT_LOCATION_NAME);
                     transactionRemove.setExchange(defaultCurrencyExchange);
 
                     return Transaction.builder()

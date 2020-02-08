@@ -27,6 +27,10 @@ public class Ledger {
     @Column(nullable = false)
     LocalDate date;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    Transaction transaction;
+    
     @Column(nullable = false, precision = 38, scale = 18)
     BigDecimal amount;
     
@@ -38,12 +42,7 @@ public class Ledger {
     @JoinColumn(nullable = false)
     Exchange exchange;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = true)
-    Location location;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Transaction transaction;
+    @Column(nullable = true)
+    String location;
 
 }

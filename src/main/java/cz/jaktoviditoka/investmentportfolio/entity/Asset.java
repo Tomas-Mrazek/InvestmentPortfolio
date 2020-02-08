@@ -14,6 +14,7 @@ import javax.persistence.*;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Table(uniqueConstraints = { @UniqueConstraint(columnNames = { "name", "ticker", "isin", "type" }) })
 @Entity
 public class Asset {
 
@@ -26,9 +27,9 @@ public class Asset {
     String name;
 
     @EqualsAndHashCode.Include
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     String ticker;
-    
+
     @EqualsAndHashCode.Include
     @Column(nullable = true, unique = true)
     String isin;
@@ -37,11 +38,11 @@ public class Asset {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     AssetType type;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = true)
     Asset nominalPriceAsset;
-    
+
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal nominalPrice;
 
