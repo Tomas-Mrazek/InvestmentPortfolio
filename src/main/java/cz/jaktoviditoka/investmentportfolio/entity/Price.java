@@ -38,7 +38,7 @@ public class Price {
     
     @EqualsAndHashCode.Include
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(nullable = true)
     Exchange exchange;
     
     @Column(nullable = true, precision = 38, scale = 18)

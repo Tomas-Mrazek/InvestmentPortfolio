@@ -42,7 +42,7 @@ public class TransactionMovement {
     Asset sourceAsset;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(nullable = true)
     Exchange exchange;
     
     @Column(nullable = true)

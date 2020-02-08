@@ -64,7 +64,7 @@ public class FioEbrokerScraper {
     private static final ExchangeAbbrEnum DEFAULT_CZECH_STOCK_EXCHANGE = ExchangeAbbrEnum.BCPP;
     private static final ExchangeAbbrEnum DEFAULT_FOREIGN_STOCK_EXCHANGE = ExchangeAbbrEnum.NYSE;
     private static final String DEFAULT_LOCATION_NAME = "Fio e-Broker";
-    
+
     private static final DateTimeFormatter PAGE_DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private static final String EXCEPTION_MESSAGE_ASSET_NOT_FOUND = "Asset not found.";
@@ -132,7 +132,8 @@ public class FioEbrokerScraper {
 
         defaultCurrencyExchange = exchangeRepository.findByAbbreviation(DEFAULT_CURRENCY_EXCHANGE).orElseThrow();
         defaultCzechStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_CZECH_STOCK_EXCHANGE).orElseThrow();
-        defaultForeignStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_FOREIGN_STOCK_EXCHANGE).orElseThrow();
+        defaultForeignStockExchange = exchangeRepository.findByAbbreviation(DEFAULT_FOREIGN_STOCK_EXCHANGE)
+                .orElseThrow();
 
         LocalDate from = LocalDate.now().minusYears(1);
         LocalDate to = LocalDate.now();
@@ -171,6 +172,8 @@ public class FioEbrokerScraper {
         }
 
         getTransactionPage(StringUtils.EMPTY, StringUtils.EMPTY);
+
+        fioEbrokerTransactions.stream().forEach(el -> log.debug("{}", el));
 
         List<Transaction> transactions = new ArrayList<>();
         transactions.addAll(deposits(fioEbrokerTransactions));
@@ -339,6 +342,7 @@ public class FioEbrokerScraper {
                             transactionRemove.setAsset(currencyOpt.get());
                             transactionRemove.setAmount(el.getAmount().multiply(el.getPrice()));
                         } else {
+                            log.error("Asset not found – {}", el.getCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
@@ -347,32 +351,50 @@ public class FioEbrokerScraper {
                             transactionRemove.setFeeAsset(feeCurrencyOpt.get());
                             transactionRemove.setFeeAmount(el.getFeeAmount());
                         } else {
+                            log.error("Asset not found – {}", el.getFeeCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
-                        if (assetOpt.isPresent()) {
-                            transactionAdd.setAsset(assetOpt.get());
-                            transactionAdd.setAmount(el.getAmount());
+                        Asset asset;
+                        if (assetOpt.isEmpty()) {
+                            log.warn("Asset not found, creating placeholder – {}", el.getAsset());
+                            asset = Asset.builder()
+                                    .name(el.getAsset())
+                                    .ticker(el.getAsset())
+                                    .type(AssetType.STOCK)
+                                    .build();
+                            assetRepository.save(asset);
                         } else {
-                            throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
+                            asset = assetOpt.get();
                         }
+                        transactionAdd.setAsset(asset);
+                        transactionAdd.setAmount(el.getAmount());
 
                     } else if (el.getComment().contains("Prodej")) {
 
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
-                        if (assetOpt.isPresent()) {
-                            transactionRemove.setAsset(assetOpt.get());
-                            transactionRemove.setAmount(el.getAmount());
+                        Asset asset;
+                        if (assetOpt.isEmpty()) {
+                            log.warn("Asset not found, creating placeholder – {}", el.getAsset());
+                            asset = Asset.builder()
+                                    .name(el.getAsset())
+                                    .ticker(el.getAsset())
+                                    .type(AssetType.STOCK)
+                                    .build();
+                            assetRepository.save(asset);
                         } else {
-                            throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
+                            asset = assetOpt.get();
                         }
+                        transactionAdd.setAsset(asset);
+                        transactionAdd.setAmount(el.getAmount());
 
                         Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                         if (currencyOpt.isPresent()) {
                             transactionAdd.setAsset(currencyOpt.get());
                             transactionAdd.setAmount(el.getAmount().multiply(el.getPrice()));
                         } else {
+                            log.error("Asset not found – {}", el.getCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
@@ -381,6 +403,7 @@ public class FioEbrokerScraper {
                             transactionAdd.setFeeAsset(feeCurrencyOpt.get());
                             transactionAdd.setFeeAmount(el.getFeeAmount());
                         } else {
+                            log.error("Asset not found – {}", el.getFeeCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
@@ -401,6 +424,7 @@ public class FioEbrokerScraper {
                             }
 
                         } else {
+                            log.error("Asset not found – {}", el.getCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
@@ -417,36 +441,28 @@ public class FioEbrokerScraper {
                                 throw new IllegalArgumentException("Failed to parse bond trade.");
                             }
                         } else {
+                            log.error("Asset not found – {}", el.getFeeCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
                         Optional<Asset> assetOpt = assetRepository.findByTicker(el.getAsset());
-                        if (assetOpt.isPresent()) {                            
+                        if (assetOpt.isPresent()) {
                             Asset asset = assetOpt.get();
                             transactionAdd.setAsset(asset);
                             if (Objects.nonNull(asset.getNominalPrice())) {
-                                transactionAdd.setAmount(el.getAmount().divide(asset.getNominalPrice()).setScale(18, RoundingMode.HALF_UP));    
+                                transactionAdd.setAmount(el.getAmount().divide(asset.getNominalPrice()).setScale(18,
+                                        RoundingMode.HALF_UP));
                             } else {
-                                transactionAdd.setAmount(el.getAmount());    
+                                transactionAdd.setAmount(el.getAmount());
                             }
                         } else {
+                            log.error("Asset not found, cannot create placeholder – {}", el.getAsset());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                         }
 
                     } else {
+                        log.error("Unknown trade type – {}", el.getComment());
                         throw new IllegalArgumentException("Unknown trade type.");
-                    }
-                    
-                    if (Objects.equals(transactionRemove.getAsset().getType(), AssetType.CURRENCY)) {
-                        transactionRemove.setExchange(defaultCurrencyExchange);
-                    } else {
-                        throw new IllegalArgumentException("Missing exchange.");
-                    }
-                    
-                    if (Objects.equals(transactionAdd.getAsset().getType(), AssetType.CURRENCY)) {
-                        transactionAdd.setExchange(defaultCurrencyExchange);
-                    } else {
-                        throw new IllegalArgumentException("Missing exchange.");
                     }
 
                     transactionRemove.setLocation(DEFAULT_LOCATION_NAME);
@@ -524,9 +540,11 @@ public class FioEbrokerScraper {
                         throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);
                     }
 
-                    Optional<Asset> sourceAssetOpt = assetRepository.findByTicker(el.getAsset());
-                    if (sourceAssetOpt.isPresent()) {
-                        transactionRemove.setSourceAsset(sourceAssetOpt.get());
+                    if (StringUtils.isNotBlank(el.getAsset())) {
+                        Optional<Asset> sourceAssetOpt = assetRepository.findByTicker(el.getAsset());
+                        if (sourceAssetOpt.isPresent()) {
+                            transactionRemove.setSourceAsset(sourceAssetOpt.get());
+                        }
                     }
 
                     transactionRemove.setLocation(DEFAULT_LOCATION_NAME);

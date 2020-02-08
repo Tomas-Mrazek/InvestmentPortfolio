@@ -1,6 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
 import cz.jaktoviditoka.investmentportfolio.domain.AssetType;
+import cz.jaktoviditoka.investmentportfolio.dto.AssetDto;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
@@ -55,13 +56,55 @@ public class BaseEntityController {
     }
 
     @GetMapping("/asset")
-    public Asset getAsset(@RequestParam String ticker) {
-        return assetRepository.findByTicker(ticker)
+    public AssetDto getAsset(@RequestParam String ticker) {
+        Asset asset = assetRepository.findByTicker(ticker)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
+
+        return AssetDto.builder()
+                .name(asset.getName())
+                .ticker(asset.getTicker())
+                .isin(asset.getIsin())
+                .type(asset.getType().name())
+                .nominalPriceAsset(asset.getNominalPriceAsset().getTicker())
+                .nominalPrice(asset.getNominalPrice())
+                .build();
     }
 
     @PostMapping("/asset")
-    public void createAsset(@RequestBody Asset asset) {
+    public void createAsset(@RequestBody AssetDto assetDto) {
+        Asset nominalPriceAsset = assetRepository.findByTicker(assetDto.getNominalPriceAsset())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
+
+        Asset asset = Asset.builder()
+                .name(assetDto.getName())
+                .ticker(assetDto.getTicker())
+                .isin(assetDto.getIsin())
+                .type(AssetType.valueOf(assetDto.getType()))
+                .nominalPriceAsset(nominalPriceAsset)
+                .nominalPrice(assetDto.getNominalPrice())
+                .build();
+        assetRepository.save(asset);
+    }
+
+    @PutMapping("/asset")
+    public void updateAsset(
+            @RequestParam String ticker,
+            @RequestBody AssetDto assetDto) {
+        Asset asset = assetRepository.findByTicker(ticker)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
+
+        Asset nominalPriceAsset = assetRepository.findByTicker(assetDto.getNominalPriceAsset())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
+
+        asset = Asset.builder()
+                .id(asset.getId())
+                .name(assetDto.getName())
+                .ticker(assetDto.getTicker())
+                .isin(assetDto.getIsin())
+                .type(AssetType.valueOf(assetDto.getType()))
+                .nominalPriceAsset(nominalPriceAsset)
+                .nominalPrice(assetDto.getNominalPrice())
+                .build();
         assetRepository.save(asset);
     }
 

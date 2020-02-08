@@ -7,10 +7,7 @@ import cz.jaktoviditoka.investmentportfolio.domain.ExchangeAbbrEnum;
 import cz.jaktoviditoka.investmentportfolio.entity.Asset;
 import cz.jaktoviditoka.investmentportfolio.entity.Exchange;
 import cz.jaktoviditoka.investmentportfolio.entity.Price;
-import cz.jaktoviditoka.investmentportfolio.model.FioForexClient;
-import cz.jaktoviditoka.investmentportfolio.model.FioForexPrice;
-import cz.jaktoviditoka.investmentportfolio.model.KurzyCzClient;
-import cz.jaktoviditoka.investmentportfolio.model.KurzyCzPrice;
+import cz.jaktoviditoka.investmentportfolio.model.*;
 import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.ExchangeRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
@@ -46,6 +43,9 @@ public class ImportService {
 
     @Autowired
     FioForexClient fioForexClient;
+    
+    @Autowired
+    AlphaVantageClient alphaVantageClient;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -71,6 +71,7 @@ public class ImportService {
     /************/
     /* KURZY CZ */
     /************/
+    
     public void importKurzyCzToFile(Exchange exchange) throws IOException, InterruptedException {
         LocalDate from = BCPP_INIT_DATE;
         LocalDate to = LocalDate.now();
@@ -253,6 +254,7 @@ public class ImportService {
     /*************/
     /* FIO FOREX */
     /*************/
+    
     public void importFioForexToFile() throws IOException, InterruptedException {
         LocalDate from = FIO_FOREX_INIT_DATE;
         LocalDate to = LocalDate.now();
@@ -413,10 +415,19 @@ public class ImportService {
             log.debug("Saving prices to database...");
             priceRepository.saveAll(prices);
     }
+    
+    /****************/
+    /* AlphaVantage */
+    /****************/
+    
+    public void importPriceFromAlphaVantage(String ticker) throws IOException {
+        alphaVantageClient.getAssetHistoricPrice(ticker);
+    }
 
     /*********/
     /* UTILS */
     /*********/
+    
     private String hyphenToNull(String value) {
         if (value.equals("-")) {
             return null;

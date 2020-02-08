@@ -126,12 +126,19 @@ public class ImportController {
             throws IOException {
         importService.importPriceFromFioForexFile(from, to);
     }
-    
+
     @GetMapping("/fio-forex/price")
-    public void importPriceFromFioForexFile(
+    public void importPriceFromFioForex(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date)
             throws IOException {
         importService.importPriceFromFioForex(date);
+    }
+
+    @GetMapping("/alpha-vantage/price")
+    public void importPriceFromAlphaVantage(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String ticker)
+            throws IOException {
+        importService.importPriceFromAlphaVantage(ticker);
     }
 
 }

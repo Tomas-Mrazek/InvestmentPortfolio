@@ -8,11 +8,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface PriceRepository extends JpaRepository<Price, Long> {
 
+    List<Price> findByAsset(Asset asset);
+    
+    List<Price> findByAssetAndDate(Asset asset, LocalDate date);
+    
     List<Price> findByAssetAndExchange(Asset asset, Exchange exchange);
     
     List<Price> findByAssetAndPriceAssetAndExchange(Asset asset, Asset priceAsset, Exchange exchange);
