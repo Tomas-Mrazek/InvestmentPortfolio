@@ -39,7 +39,7 @@ public class Ledger {
     Asset asset;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(nullable = true)
     Exchange exchange;
     
     @Column(nullable = true)

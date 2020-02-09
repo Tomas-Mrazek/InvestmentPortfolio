@@ -22,6 +22,7 @@ public class TransactionService {
 
     @Transactional
     public void process(Transaction transaction) {
+        log.debug("{}", transaction);
         transactionRepository.save(transaction);
         
         if (Objects.nonNull(transaction.getOut())) {

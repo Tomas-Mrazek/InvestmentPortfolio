@@ -20,7 +20,7 @@ public class TransactionMovement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
-    @Column(nullable = false)
+    @Column(nullable = true)
     LocalDateTime timestamp;
     
     @ManyToOne(fetch = FetchType.LAZY)

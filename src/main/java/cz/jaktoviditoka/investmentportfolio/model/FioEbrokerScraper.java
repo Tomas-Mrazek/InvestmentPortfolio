@@ -386,8 +386,8 @@ public class FioEbrokerScraper {
                         } else {
                             asset = assetOpt.get();
                         }
-                        transactionAdd.setAsset(asset);
-                        transactionAdd.setAmount(el.getAmount());
+                        transactionRemove.setAsset(asset);
+                        transactionRemove.setAmount(el.getAmount());
 
                         Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                         if (currencyOpt.isPresent()) {

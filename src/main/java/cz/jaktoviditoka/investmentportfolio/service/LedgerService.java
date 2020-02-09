@@ -2,12 +2,14 @@ package cz.jaktoviditoka.investmentportfolio.service;
 
 import cz.jaktoviditoka.investmentportfolio.entity.*;
 import cz.jaktoviditoka.investmentportfolio.repository.LedgerRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @Service
 public class LedgerService {
 
@@ -28,6 +30,7 @@ public class LedgerService {
                 .location(location)
                 .transaction(transaction)
                 .build();
+        log.debug("{}", ledger);
         return ledgerRepository.save(ledger);
     }
 
