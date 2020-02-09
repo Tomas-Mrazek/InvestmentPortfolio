@@ -15,12 +15,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Transactional
 @Service
 public class AppUserService implements UserDetailsService {
 
@@ -34,6 +36,7 @@ public class AppUserService implements UserDetailsService {
     PasswordCryptoProvider passwordCryptoProvider;
 
     @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) {
         AppUser appUser = appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Bad credentials."));
@@ -51,6 +54,7 @@ public class AppUserService implements UserDetailsService {
                 .build();
     }
 
+    @Transactional
     public void register(AppUserRequest appUserDto) {
         AppUser appUser = AppUser.builder()
                 .username(appUserDto.getEmail())
@@ -65,37 +69,44 @@ public class AppUserService implements UserDetailsService {
         appUserRepository.save(appUser);
     }
 
+    @Transactional(readOnly = true)
     public List<AppUser> getUsers() {
         return appUserRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public AppUser getUser(Long id) {
         return appUserRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
+    @Transactional(readOnly = true)
     public AppUser getUser(String username) {
         return appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
     
+    @Transactional
     public AppUser updateFioEbrokerCredentials(AppUser appUser, String username, String password) {
         appUser.setFioEbrokerUsername(username);
         appUser.setFioEbrokerPassword(passwordCryptoProvider.encrypt(password));
         return appUserRepository.save(appUser);
     }
 
+    @Transactional
     public AppUser disableUser(AppUser appUser) {
         appUser.setDisabled(true);
         return appUserRepository.save(appUser);
     }
 
+    @Transactional
     public AppUser grantRole(RoleType role, AppUser appUser) {
         appUser.getRoles().add(role);
         return appUserRepository.save(appUser);
     }
 
-    public AppUser grevokeRole(RoleType role, AppUser appUser) {
+    @Transactional
+    public AppUser revokeRole(RoleType role, AppUser appUser) {
         appUser.getRoles().remove(role);
         return appUserRepository.save(appUser);
     }

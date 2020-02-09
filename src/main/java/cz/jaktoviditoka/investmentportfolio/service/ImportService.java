@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Transactional
 @Component
 public class ImportService {
 
@@ -54,6 +56,7 @@ public class ImportService {
     private static final LocalDate FIO_FOREX_INIT_DATE = LocalDate.of(2003, 01, 02);
     private static final String PRICE_ASSET = "CZK";
 
+    @Transactional
     public void importCurrencies() {
         Set<Currency> currencies = Currency.getAvailableCurrencies();
         List<Asset> assets = currencies.stream()
@@ -65,19 +68,23 @@ public class ImportService {
                             .build();
                 })
                 .collect(Collectors.toList());
+        log.debug("Saving {} currencies to database...", assets.size());
         assetRepository.saveAll(assets);
+        log.debug("Done...");
     }
 
     /************/
     /* KURZY CZ */
     /************/
     
+    @Transactional
     public void importKurzyCzToFile(Exchange exchange) throws IOException, InterruptedException {
         LocalDate from = BCPP_INIT_DATE;
         LocalDate to = LocalDate.now();
         importKurzyCzToFile(exchange, from, to);
     }
 
+    @Transactional
     public void importKurzyCzToFile(Exchange exchange, LocalDate from, LocalDate to)
             throws IOException, InterruptedException {
         String fileName = "KurzyCZ_" + exchange.getAbbreviation() + "_"
@@ -95,6 +102,7 @@ public class ImportService {
         }
     }
 
+    @Transactional
     public void importAssetFromKurzyCzFile(Exchange exchange, LocalDate from, LocalDate to) throws IOException {
         File file = new File("KurzyCZ_" + exchange.getAbbreviation().name() + "_"
                 + from.format(DateTimeFormatter.ISO_DATE) + "_"
@@ -129,12 +137,13 @@ public class ImportService {
                     })
                     .distinct()
                     .collect(Collectors.toList());
-            log.debug("Saving assets to database...");
+            log.debug("Saving {} assets from KurzyCZ to database...", assets.size());
             assetRepository.saveAll(assets);
+            log.debug("Done...");
         }
     }
     
-
+    @Transactional
     public void importPriceFromKurzyCzFile(Exchange exchange, LocalDate from, LocalDate to) throws IOException {
         File file = new File("KurzyCZ_" + exchange.getAbbreviation().name() + "_"
                 + from.format(DateTimeFormatter.ISO_DATE) + "_"
@@ -165,10 +174,10 @@ public class ImportService {
                                     .exchange(exchange)
                                     .priceAsset(priceAsset)
                                     .openingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceOpen())))
+                                    .lowPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMinDay())))
+                                    .highPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMaxDay())))
                                     .closingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceClose())))
                                     .priceChange(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceChange())))
-                                    .minPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMinDay())))
-                                    .maxPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMaxDay())))
                                     .volume(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeShares())))
                                     .turnover(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeVolume())))
                                     .build();
@@ -176,11 +185,13 @@ public class ImportService {
                     })
                     .distinct()
                     .collect(Collectors.toList());
-            log.debug("Saving prices to database...");
+            log.debug("Saving {} prices from KurzyCZ to database...", prices.size());
             priceRepository.saveAll(prices);
+            log.debug("Done...");
         }
     }
     
+    @Transactional
     public void importAssetFromKurzyCz(Exchange exchange, LocalDate date) throws IOException {
         KurzyCzPrice prices = kurzyCzClient.importPrice(exchange, date);
         List<Asset> assets = prices.getListOfPrices().stream()
@@ -208,10 +219,12 @@ public class ImportService {
                 })
                 .distinct()
                 .collect(Collectors.toList());
-        log.debug("Saving assets to database...");
+        log.debug("Saving {} assets from KurzyCZ to database...", assets.size());
         assetRepository.saveAll(assets);
+        log.debug("Done...");
     }
 
+    @Transactional
     public void importPriceFromKurzyCz(Exchange exchange, LocalDate date) throws IOException {
         List<Asset> assets = assetRepository.findAll();
         Asset priceAsset = assets.stream()
@@ -236,10 +249,10 @@ public class ImportService {
                                 .exchange(exchange)
                                 .priceAsset(priceAsset)
                                 .openingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceOpen())))
+                                .lowPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMinDay())))
+                                .highPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMaxDay())))
                                 .closingPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceClose())))
                                 .priceChange(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceChange())))
-                                .minPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMinDay())))
-                                .maxPrice(NumberUtils.createBigDecimal(hyphenToNull(map.getPriceMaxDay())))
                                 .volume(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeShares())))
                                 .turnover(NumberUtils.createBigDecimal(hyphenToNull(map.getTradeVolume())))
                                 .build();
@@ -247,20 +260,23 @@ public class ImportService {
                 })
                 .distinct()
                 .collect(Collectors.toList());
-        log.debug("Saving prices to database...");
+        log.debug("Saving {} prices from KurzyCZ to database...", prices.size());
         priceRepository.saveAll(prices);
+        log.debug("Done...");
     }
 
     /*************/
     /* FIO FOREX */
     /*************/
     
+    @Transactional
     public void importFioForexToFile() throws IOException, InterruptedException {
         LocalDate from = FIO_FOREX_INIT_DATE;
         LocalDate to = LocalDate.now();
         importFioForexToFile(from, to);
     }    
     
+    @Transactional
     public void importFioForexToFile(LocalDate from, LocalDate to) throws IOException, InterruptedException {
         String fileName = "Fio_Forex_" + from.format(DateTimeFormatter.ISO_DATE) + "_"
                 + to.format(DateTimeFormatter.ISO_DATE) + ".json";
@@ -279,6 +295,7 @@ public class ImportService {
         }
     }
 
+    @Transactional
     public void importPriceFromFioForexFile(LocalDate from, LocalDate to) throws IOException {
         String fileName = "Fio_Forex_" + from.format(DateTimeFormatter.ISO_DATE) + "_"
                 + to.format(DateTimeFormatter.ISO_DATE) + ".json";
@@ -312,12 +329,12 @@ public class ImportService {
                                     .exchange(exchange)
                                     .priceAsset(assetOpt.get())
                                     .openingPrice(null)
+                                    .lowPrice(null)
+                                    .highPrice(null)
                                     .closingPrice(BigDecimal.ONE
                                             .divide(NumberUtils.createBigDecimal(map.getBuyPrice().replace(',', '.'))
                                                     .divide(amount), 5, RoundingMode.HALF_EVEN))
                                     .priceChange(null)
-                                    .minPrice(null)
-                                    .maxPrice(null)
                                     .volume(null)
                                     .turnover(null)
                                     .build();
@@ -329,11 +346,11 @@ public class ImportService {
                                     .exchange(exchange)
                                     .priceAsset(priceAssetOpt.get())
                                     .openingPrice(null)
+                                    .lowPrice(null)
+                                    .highPrice(null)
                                     .closingPrice(NumberUtils.createBigDecimal(map.getSellPrice().replace(',', '.'))
                                             .divide(amount))
                                     .priceChange(null)
-                                    .minPrice(null)
-                                    .maxPrice(null)
                                     .volume(null)
                                     .turnover(null)
                                     .build();
@@ -345,11 +362,13 @@ public class ImportService {
                     .flatMap(Collection::stream)
                     .distinct()
                     .collect(Collectors.toList());
-            log.debug("Saving prices to database...");
+            log.debug("Saving {} prices from Fio e-Broker to database...", prices.size());
             priceRepository.saveAll(prices);
+            log.debug("Done...");
         }
     }
     
+    @Transactional
     public void importPriceFromFioForex(LocalDate date) throws IOException {
             List<Asset> assets = assetRepository.findAll();
 
@@ -379,12 +398,12 @@ public class ImportService {
                                     .exchange(exchange)
                                     .priceAsset(assetOpt.get())
                                     .openingPrice(null)
+                                    .lowPrice(null)
+                                    .highPrice(null)
                                     .closingPrice(BigDecimal.ONE
                                             .divide(NumberUtils.createBigDecimal(map.getBuyPrice().replace(',', '.'))
                                                     .divide(amount), 5, RoundingMode.HALF_EVEN))
                                     .priceChange(null)
-                                    .minPrice(null)
-                                    .maxPrice(null)
                                     .volume(null)
                                     .turnover(null)
                                     .build();
@@ -396,11 +415,11 @@ public class ImportService {
                                     .exchange(exchange)
                                     .priceAsset(priceAssetOpt.get())
                                     .openingPrice(null)
+                                    .lowPrice(null)
+                                    .highPrice(null)
                                     .closingPrice(NumberUtils.createBigDecimal(map.getSellPrice().replace(',', '.'))
                                             .divide(amount))
                                     .priceChange(null)
-                                    .minPrice(null)
-                                    .maxPrice(null)
                                     .volume(null)
                                     .turnover(null)
                                     .build();
@@ -412,14 +431,16 @@ public class ImportService {
                     .flatMap(Collection::stream)
                     .distinct()
                     .collect(Collectors.toList());
-            log.debug("Saving prices to database...");
+            log.debug("Saving {} prices from Fio e-Broker to database...", prices.size());
             priceRepository.saveAll(prices);
+            log.debug("Done...");
     }
     
     /****************/
     /* AlphaVantage */
     /****************/
     
+    @Transactional
     public void importPriceFromAlphaVantage(String ticker) throws IOException {
         alphaVantageClient.getAssetHistoricPrice(ticker);
     }

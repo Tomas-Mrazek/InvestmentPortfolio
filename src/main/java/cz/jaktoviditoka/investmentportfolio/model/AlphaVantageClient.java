@@ -89,11 +89,10 @@ public class AlphaVantageClient {
                     .date(LocalDate.parse(el.getKey(), DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                     .asset(asset)
                     .openingPrice(new BigDecimal(el.getValue().get("1. open").asText()))
-                    .maxPrice(new BigDecimal(el.getValue().get("2. high").asText()))
-                    .minPrice(new BigDecimal(el.getValue().get("3. low").asText()))
+                    .lowPrice(new BigDecimal(el.getValue().get("3. low").asText()))
+                    .highPrice(new BigDecimal(el.getValue().get("2. high").asText()))
                     .closingPrice(new BigDecimal(el.getValue().get("4. close").asText()))
                     .priceAsset(priceAsset)
-                    // .exchange(exchange)
                     .build();
             prices.add(price);
         });

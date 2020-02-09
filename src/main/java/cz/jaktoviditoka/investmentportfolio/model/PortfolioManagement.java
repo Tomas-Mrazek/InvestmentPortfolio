@@ -162,7 +162,7 @@ public class PortfolioManagement {
         List<PortfolioAssetPerDay> portfolioPerDay = new ArrayList<>();
         List<Ledger> portfolio = ledgerRepository.findByUser(appUser);
         portfolio.stream()
-                .map(el -> el.getDate())
+                .map(el -> el.getTimestamp().toLocalDate())
                 .min(Comparator.comparing(LocalDate::toEpochDay))
                 .orElseThrow()
                 .datesUntil(LocalDate.now().plusDays(1))
@@ -189,7 +189,7 @@ public class PortfolioManagement {
                             .build();
 
                     portfolio.stream()
-                            .filter(el -> Objects.equals(el.getDate(), date))
+                            .filter(el -> Objects.equals(el.getTimestamp().toLocalDate(), date))
                             .forEach(asset -> {
                                 if (paapd.getAssets().stream()
                                         .anyMatch(

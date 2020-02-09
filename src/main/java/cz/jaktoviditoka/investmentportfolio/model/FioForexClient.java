@@ -3,10 +3,7 @@ package cz.jaktoviditoka.investmentportfolio.model;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.html.HtmlTableRow.CellIterator;
-import cz.jaktoviditoka.investmentportfolio.repository.AssetRepository;
-import cz.jaktoviditoka.investmentportfolio.repository.PriceRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,12 +16,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class FioForexClient {
-
-    @Autowired
-    AssetRepository assetRepository;
-
-    @Autowired
-    PriceRepository priceRepository;
 
     WebClient webClient = new WebClient();
 

@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.ZonedDateTime;
 
 import javax.persistence.*;
 
@@ -17,26 +17,20 @@ import javax.persistence.*;
 public class Ledger {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ledger_generator")
+    @SequenceGenerator(name="ledger_generator", sequenceName = "ledger_id_seq", allocationSize = 20)
     Long id;
+    
+    @Column(nullable = false)
+    ZonedDateTime timestamp;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     AppUser user;
     
-    @Column(nullable = false)
-    LocalDate date;
-    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     Transaction transaction;
-    
-    @Column(nullable = false, precision = 38, scale = 18)
-    BigDecimal amount;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Asset asset;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = true)
@@ -44,5 +38,12 @@ public class Ledger {
     
     @Column(nullable = true)
     String location;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    Asset asset;
+    
+    @Column(nullable = false, precision = 38, scale = 18)
+    BigDecimal amount;
 
 }

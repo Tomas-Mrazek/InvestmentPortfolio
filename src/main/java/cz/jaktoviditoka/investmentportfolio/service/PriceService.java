@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,6 +29,7 @@ public class PriceService {
     @Autowired
     ModelMapper modelMapper;
 
+    @Transactional(readOnly = true)
     public List<PriceDto> getPrice(String ticker) {
         Optional<Asset> assetOpt = assetPrice.findByTicker(ticker);
         if (assetOpt.isPresent()) {
@@ -39,6 +41,7 @@ public class PriceService {
         return List.of();
     }
 
+    @Transactional(readOnly = true)
     public List<PriceDto> getPrice(String ticker, LocalDate date) {
         Optional<Asset> assetOpt = assetPrice.findByTicker(ticker);
         if (assetOpt.isPresent()) {

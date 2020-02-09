@@ -24,7 +24,7 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
 
     List<Ledger> findByUserAndAssetAndLocation(AppUser user, Asset asset, String location);
     
-    @Query("SELECT min(date) FROM Ledger WHERE asset = :asset AND exchange = :exchange")
+    @Query("SELECT min(timestamp) FROM Ledger WHERE asset = :asset AND exchange = :exchange")
     Optional<LocalDate> findMinDateByAssetAndExchange(@Param("asset") Asset asset, @Param("exchange") Exchange exchange);
 
 }

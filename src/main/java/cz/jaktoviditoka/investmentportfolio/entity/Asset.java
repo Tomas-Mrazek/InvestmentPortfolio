@@ -19,7 +19,8 @@ import javax.persistence.*;
 public class Asset {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "asset_generator")
+    @SequenceGenerator(name="asset_generator", sequenceName = "asset_id_seq", allocationSize = 20)
     Long id;
 
     @EqualsAndHashCode.Include

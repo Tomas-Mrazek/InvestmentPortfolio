@@ -27,6 +27,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -66,6 +68,8 @@ public class FioEbrokerScraper {
     private static final String DEFAULT_LOCATION_NAME = "Fio e-Broker";
 
     private static final DateTimeFormatter PAGE_DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    private static final ZoneId TIMEZONE = ZoneId.of("Europe/Prague");
 
     private static final String EXCEPTION_MESSAGE_ASSET_NOT_FOUND = "Asset not found.";
     private static final String EXCEPTION_MESSAGE_PARSING_ERROR = "Parsing error...";
@@ -181,9 +185,7 @@ public class FioEbrokerScraper {
         transactions.addAll(specialFees(fioEbrokerTransactions));
         transactions.addAll(trades(fioEbrokerTransactions));
         transactions.stream().forEach(el -> el.setUser(user));
-        return transactions.stream()
-                .sorted((el1, el2) -> el1.getTimestamp().compareTo(el2.getTimestamp()))
-                .collect(Collectors.toList());
+        return transactions;
     }
 
     private HtmlPage getTransactionPage(String from, String to) throws IOException {
@@ -199,8 +201,10 @@ public class FioEbrokerScraper {
         CellIterator iterator = row.getCellIterator();
 
         FioEbrokerTransaction transaction = new FioEbrokerTransaction();
-        transaction.setTimestamp(LocalDateTime.parse(iterator.nextCell().asText(),
-                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+        transaction.setTimestamp(ZonedDateTime.of(
+                LocalDateTime.parse(iterator.nextCell().asText(),
+                        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+                TIMEZONE));
 
         DomAttr type = iterator.nextCell().getFirstByXPath(".//img/@title");
         if (Objects.nonNull(type)) {
@@ -292,7 +296,7 @@ public class FioEbrokerScraper {
                 .filter(el -> BooleanUtils.isNotTrue(el.getComment().contains("MONETA MONEY BANK")))
                 .map(el -> {
                     TransactionMovement transactionAdd = new TransactionMovement();
-
+                    
                     Optional<Asset> assetOpt = assetRepository.findByTicker(el.getCurrency());
                     if (assetOpt.isPresent()) {
                         transactionAdd.setAsset(assetOpt.get());
@@ -314,8 +318,8 @@ public class FioEbrokerScraper {
                     transactionAdd.setExchange(defaultCurrencyExchange);
 
                     return Transaction.builder()
-                            .timestamp(el.getTimestamp())
                             .type(TransactionType.DEPOSIT)
+                            .timestamp(el.getTimestamp())
                             .in(transactionAdd)
                             .comment(el.getComment())
                             .imported(true)
@@ -334,7 +338,7 @@ public class FioEbrokerScraper {
 
                     TransactionMovement transactionRemove = new TransactionMovement();
                     TransactionMovement transactionAdd = new TransactionMovement();
-
+                    
                     if (el.getComment().contains("Nákup")) {
 
                         Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
@@ -368,8 +372,14 @@ public class FioEbrokerScraper {
                         } else {
                             asset = assetOpt.get();
                         }
+
                         transactionAdd.setAsset(asset);
                         transactionAdd.setAmount(el.getAmount());
+
+                        if (el.getType().contains("Převod mezi měnami")) {
+                            transactionAdd.setExchange(defaultCurrencyExchange);
+                            transactionRemove.setExchange(defaultCurrencyExchange);
+                        }
 
                     } else if (el.getComment().contains("Prodej")) {
 
@@ -469,8 +479,8 @@ public class FioEbrokerScraper {
                     transactionAdd.setLocation(DEFAULT_LOCATION_NAME);
 
                     return Transaction.builder()
-                            .timestamp(el.getTimestamp())
                             .type(TransactionType.TRADE)
+                            .timestamp(el.getTimestamp())
                             .out(transactionRemove)
                             .in(transactionAdd)
                             .comment(el.getComment())
@@ -485,16 +495,16 @@ public class FioEbrokerScraper {
         return transactions.stream()
                 .filter(el -> el.getComment().contains(el.getAsset() + " - Dividenda") ||
                         el.getComment().contains(el.getAsset() + " - Úrokový výnos") ||
-                        (el.getComment().contains("Vloženo na účet") && el.getComment().contains("MONETA MONEY BANK")))
+                        (el.getComment().contains("Vloženo na účet") && el.getComment().contains("27-9078470257/0100")))
                 .map(el -> {
 
-                    if (el.getComment().contains("MONETA MONEY BANK")) {
+                    if (el.getComment().contains("27-9078470257/0100")) {
                         el.setAsset("BAAGECBA");
                         el.setAmount(el.getTotalAmount());
                     }
 
                     TransactionMovement transactionAdd = new TransactionMovement();
-
+                    
                     Optional<Asset> currencyOpt = assetRepository.findByTicker(el.getCurrency());
                     if (currencyOpt.isPresent()) {
                         transactionAdd.setAsset(currencyOpt.get());
@@ -512,8 +522,8 @@ public class FioEbrokerScraper {
                     transactionAdd.setExchange(defaultCurrencyExchange);
 
                     return Transaction.builder()
-                            .timestamp(el.getTimestamp())
                             .type(TransactionType.INTEREST)
+                            .timestamp(el.getTimestamp())
                             .in(transactionAdd)
                             .comment(el.getComment())
                             .imported(true)
@@ -551,8 +561,8 @@ public class FioEbrokerScraper {
                     transactionRemove.setExchange(defaultCurrencyExchange);
 
                     return Transaction.builder()
-                            .timestamp(el.getTimestamp())
                             .type(TransactionType.SPECIAL_FEE)
+                            .timestamp(el.getTimestamp())
                             .out(transactionRemove)
                             .comment(el.getComment())
                             .imported(true)

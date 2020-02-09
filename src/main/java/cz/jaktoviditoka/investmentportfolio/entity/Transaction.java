@@ -4,7 +4,7 @@ import cz.jaktoviditoka.investmentportfolio.domain.TransactionType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import javax.persistence.*;
 
@@ -17,11 +17,12 @@ import javax.persistence.*;
 public class Transaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transaction_generator")
+    @SequenceGenerator(name="transaction_generator", sequenceName = "transaction_id_seq", allocationSize = 10)
     Long id;
     
     @Column(nullable = false)
-    LocalDateTime timestamp;
+    ZonedDateTime timestamp;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
@@ -31,11 +32,11 @@ public class Transaction {
     @Column(nullable = false)
     TransactionType type;
        
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(nullable = true)
     TransactionMovement in;
     
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(nullable = true)
     TransactionMovement out;
     

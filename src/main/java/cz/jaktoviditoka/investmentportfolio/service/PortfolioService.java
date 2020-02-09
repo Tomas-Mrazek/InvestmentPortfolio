@@ -5,15 +5,19 @@ import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetPerDayResponse;
 import cz.jaktoviditoka.investmentportfolio.dto.PortfolioAssetResponse;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
 import cz.jaktoviditoka.investmentportfolio.model.PortfolioManagement;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
+@Transactional
 @Service
 public class PortfolioService {
 
@@ -23,6 +27,7 @@ public class PortfolioService {
     @Autowired
     ModelMapper modelMapper;
 
+    @Transactional(readOnly = true)
     public List<PortfolioAssetPerDayResponse> getPortfolioPerDay(AppUser appuser) {
         List<PortfolioAssetPerDay> listOfPaapd = portfolio.portfolioPerDay(appuser);
         List<PortfolioAssetPerDayResponse> listOfPaapdDto = new ArrayList<>();
@@ -47,14 +52,17 @@ public class PortfolioService {
         return listOfPaapdDto;
     }
 
+    @Transactional(readOnly = true)
     public List<PortfolioAssetResponse> getPortfolioPerDayTest(AppUser appuser) {
         return portfolio.portfolioPerDayTest(appuser);
     }
 
+    @Transactional(readOnly = true)
     public BigDecimal amountInvested(AppUser appuser) {
         return portfolio.amountInvested(appuser);
     }
 
+    @Transactional(readOnly = true)
     public BigDecimal value(AppUser appuser) {
         return portfolio.value(appuser);
     }

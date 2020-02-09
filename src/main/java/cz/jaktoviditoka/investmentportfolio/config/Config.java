@@ -6,15 +6,19 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import cz.jaktoviditoka.investmentportfolio.dto.transaction.TransactionTradeRequest;
 import cz.jaktoviditoka.investmentportfolio.entity.Transaction;
 import cz.jaktoviditoka.investmentportfolio.entity.TransactionMovement;
+import org.flywaydb.core.Flyway;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
+
+import javax.sql.DataSource;
 
 @EnableAsync
 @EnableScheduling
@@ -23,6 +27,15 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class Config {
 
+    @Bean
+    @Profile("cleandb")
+    public Flyway flyway(DataSource dataSource) {
+        Flyway flyway = Flyway.configure().dataSource(dataSource).load();
+        flyway.clean();
+        flyway.migrate();
+        return flyway;
+    }
+    
     @Bean
     public ObjectMapper createObjectMapper() {  
         ObjectMapper mapper = new ObjectMapper();

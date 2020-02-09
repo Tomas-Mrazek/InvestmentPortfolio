@@ -1,34 +1,48 @@
 package cz.jaktoviditoka.investmentportfolio.service;
 
+import cz.jaktoviditoka.investmentportfolio.dto.LedgerResponse;
 import cz.jaktoviditoka.investmentportfolio.entity.*;
 import cz.jaktoviditoka.investmentportfolio.repository.LedgerRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
+@Transactional
 @Service
 public class LedgerService {
 
     @Autowired
     LedgerRepository ledgerRepository;
 
-    public List<Ledger> getEntries(AppUser appUser) {
-        return ledgerRepository.findByUser(appUser);
+    @Autowired
+    ModelMapper modelMapper;
+
+    @Transactional(readOnly = true)
+    public List<LedgerResponse> getEntries(AppUser appUser) {
+        return ledgerRepository.findByUser(appUser)
+                .stream()
+                .map(map -> modelMapper.map(map, LedgerResponse.class))
+                .collect(Collectors.toList());
     }
     
-    public Ledger createEntry(BigDecimal amount, Asset asset, String location, Exchange exchange, Transaction transaction) {
+    @Transactional
+    public Ledger createEntry(Transaction transaction, Exchange exchange, String location, Asset asset,
+            BigDecimal amount) {
         Ledger ledger = Ledger.builder()
-                .date(transaction.getTimestamp().toLocalDate())
+                .timestamp(transaction.getTimestamp())
                 .user(transaction.getUser())
-                .amount(amount)
-                .asset(asset)
+                .transaction(transaction)
                 .exchange(exchange)
                 .location(location)
-                .transaction(transaction)
+                .asset(asset)
+                .amount(amount)
                 .build();
         log.debug("{}", ledger);
         return ledgerRepository.save(ledger);

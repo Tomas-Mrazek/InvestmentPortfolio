@@ -19,7 +19,8 @@ import javax.persistence.*;
 public class Price {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "price_generator")
+    @SequenceGenerator(name="price_generator", sequenceName = "price_id_seq", allocationSize = 100)
     Long id;
 
     @EqualsAndHashCode.Include
@@ -33,28 +34,28 @@ public class Price {
     
     @EqualsAndHashCode.Include
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    Asset priceAsset;
-    
-    @EqualsAndHashCode.Include
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = true)
     Exchange exchange;
     
+    @EqualsAndHashCode.Include
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    Asset priceAsset;
+    
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal openingPrice;
+    
+    @Column(nullable = true, precision = 38, scale = 18)
+    BigDecimal lowPrice;
+    
+    @Column(nullable = true, precision = 38, scale = 18)
+    BigDecimal highPrice;
     
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal closingPrice;
     
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal priceChange;
-    
-    @Column(nullable = true, precision = 38, scale = 18)
-    BigDecimal minPrice;
-    
-    @Column(nullable = true, precision = 38, scale = 18)
-    BigDecimal maxPrice;
     
     @Column(nullable = true, precision = 38, scale = 18)
     BigDecimal volume;

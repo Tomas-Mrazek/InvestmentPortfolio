@@ -1,7 +1,7 @@
 package cz.jaktoviditoka.investmentportfolio.controller;
 
+import cz.jaktoviditoka.investmentportfolio.dto.LedgerResponse;
 import cz.jaktoviditoka.investmentportfolio.entity.AppUser;
-import cz.jaktoviditoka.investmentportfolio.entity.Ledger;
 import cz.jaktoviditoka.investmentportfolio.service.AppUserService;
 import cz.jaktoviditoka.investmentportfolio.service.LedgerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class LedgerController {
     LedgerService ledgerService;
 
     @GetMapping
-    public List<Ledger> getEntries() {
+    public List<LedgerResponse> getEntries() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser appUser = appUserService.getUser(username);
         return ledgerService.getEntries(appUser);

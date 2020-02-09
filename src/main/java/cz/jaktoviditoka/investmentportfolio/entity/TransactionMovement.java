@@ -4,7 +4,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 import javax.persistence.*;
 
@@ -17,11 +16,16 @@ import javax.persistence.*;
 public class TransactionMovement {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transaction_movement_generator")
+    @SequenceGenerator(name="transaction_movement_generator", sequenceName = "transaction_movement_id_seq", allocationSize = 20)
     Long id;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = true)
+    Exchange exchange;
+    
     @Column(nullable = true)
-    LocalDateTime timestamp;
+    String location;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
@@ -40,12 +44,5 @@ public class TransactionMovement {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = true)
     Asset sourceAsset;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = true)
-    Exchange exchange;
-    
-    @Column(nullable = true)
-    String location;
     
 }

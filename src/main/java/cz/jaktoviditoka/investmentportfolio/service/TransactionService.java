@@ -16,7 +16,7 @@ public class TransactionService {
 
     @Autowired
     TransactionRepository transactionRepository;
-    
+
     @Autowired
     LedgerService ledgerService;
 
@@ -24,23 +24,39 @@ public class TransactionService {
     public void process(Transaction transaction) {
         log.debug("{}", transaction);
         transactionRepository.save(transaction);
-        
+
         if (Objects.nonNull(transaction.getOut())) {
             TransactionMovement movement = transaction.getOut();
-            ledgerService.createEntry(movement.getAmount().negate(), movement.getAsset(), movement.getLocation(), movement.getExchange(), transaction);
+            ledgerService.createEntry(transaction,
+                    movement.getExchange(),
+                    movement.getLocation(),
+                    movement.getAsset(),
+                    movement.getAmount().negate());
             if (Objects.nonNull(movement.getFeeAmount())) {
-                ledgerService.createEntry(movement.getFeeAmount().negate(), movement.getFeeAsset(), movement.getLocation(), movement.getExchange(), transaction);
-            }
-        }
-        
-        if (Objects.nonNull(transaction.getIn())) {
-            TransactionMovement movement = transaction.getIn();
-            ledgerService.createEntry(movement.getAmount(), movement.getAsset(), movement.getLocation(), movement.getExchange(), transaction);
-            if (Objects.nonNull(movement.getFeeAmount())) {
-                ledgerService.createEntry(movement.getFeeAmount().negate(), movement.getFeeAsset(), movement.getLocation(), movement.getExchange(), transaction);
+                ledgerService.createEntry(transaction,
+                        movement.getExchange(),
+                        movement.getLocation(),
+                        movement.getFeeAsset(),
+                        movement.getFeeAmount().negate());
             }
         }
 
-    }    
-    
+        if (Objects.nonNull(transaction.getIn())) {
+            TransactionMovement movement = transaction.getIn();
+            ledgerService.createEntry(transaction,
+                    movement.getExchange(),
+                    movement.getLocation(),
+                    movement.getAsset(),
+                    movement.getAmount());
+            if (Objects.nonNull(movement.getFeeAmount())) {
+                ledgerService.createEntry(transaction,
+                        movement.getExchange(),
+                        movement.getLocation(),
+                        movement.getFeeAsset(),
+                        movement.getFeeAmount().negate());
+            }
+        }
+
+    }
+
 }
