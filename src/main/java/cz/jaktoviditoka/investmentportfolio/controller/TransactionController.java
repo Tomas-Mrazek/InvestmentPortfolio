@@ -10,6 +10,7 @@ import cz.jaktoviditoka.investmentportfolio.repository.AppUserRepository;
 import cz.jaktoviditoka.investmentportfolio.repository.TransactionRepository;
 import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
 import cz.jaktoviditoka.investmentportfolio.service.TransactionService;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,8 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @HasAnyAuthority
 @RestController
 @RequestMapping("/transactions")
@@ -87,18 +90,19 @@ public class TransactionController {
     }
 
     @GetMapping("/import/fioEbroker")
-    public void getFioEbrokerTransactions(@RequestBody(required = false) AppUserFioEbrokerRequest request)
+    public void getFioEbrokerTransactions(
+            @RequestBody Optional<AppUserFioEbrokerRequest> request)
             throws IOException {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser user = appUserRepository.findByUsername(email).orElseThrow();
-        if (Objects.isNull(request)) {
+        if (request.isEmpty()) {
             if (Objects.isNull(user.getFioEbrokerUsername()) || Objects.isNull(user.getFioEbrokerPassword())) {
                 throw new IllegalArgumentException("Fio e-Broker credentials not provided.");
             }
             fioEbrokerScraper.getTransactions(user)
                     .forEach(el -> transactionService.process(el));
         } else {
-            fioEbrokerScraper.getTransactions(request.getUsername(), request.getPassword(), user)
+            fioEbrokerScraper.getTransactions(request.get().getUsername(), request.get().getPassword(), user)
                     .forEach(el -> transactionService.process(el));
         }
 

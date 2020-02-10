@@ -293,7 +293,7 @@ public class FioEbrokerScraper {
     private List<Transaction> deposits(List<FioEbrokerTransaction> transactions) {
         return transactions.stream()
                 .filter(el -> el.getComment().contains("Vloženo na účet"))
-                .filter(el -> BooleanUtils.isNotTrue(el.getComment().contains("MONETA MONEY BANK")))
+                .filter(el -> BooleanUtils.isNotTrue(el.getComment().contains("27-9078470257/0100")))
                 .map(el -> {
                     TransactionMovement transactionAdd = new TransactionMovement();
                     
@@ -432,7 +432,6 @@ public class FioEbrokerScraper {
                             } else {
                                 throw new IllegalArgumentException("Failed to parse bond trade.");
                             }
-
                         } else {
                             log.error("Asset not found – {}", el.getCurrency());
                             throw new IllegalArgumentException(EXCEPTION_MESSAGE_ASSET_NOT_FOUND);

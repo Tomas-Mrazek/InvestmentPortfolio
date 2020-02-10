@@ -7,13 +7,17 @@ import cz.jaktoviditoka.investmentportfolio.security.HasAnyAuthority;
 import cz.jaktoviditoka.investmentportfolio.service.AppUserService;
 import cz.jaktoviditoka.investmentportfolio.service.PortfolioService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/portfolio")
@@ -27,10 +31,15 @@ public class PortfolioController {
 
     @HasAnyAuthority
     @GetMapping("/day")
-    public List<PortfolioAssetPerDayResponse> getPortfolioPerDay() {
+    public List<PortfolioAssetPerDayResponse> getPortfolioPerDay(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Optional<LocalDate> date) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         AppUser user = appUserService.getUser(email);
-        return portfolioService.getPortfolioPerDay(user);
+        if(date.isPresent()) {
+            return portfolioService.getPortfolioPerDay(user, date.get());
+        } else {
+            return portfolioService.getPortfolioPerDay(user);
+        }
     }
 
     @HasAnyAuthority

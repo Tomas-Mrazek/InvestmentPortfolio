@@ -44,7 +44,6 @@ public class LedgerService {
                 .asset(asset)
                 .amount(amount)
                 .build();
-        log.debug("{}", ledger);
         return ledgerRepository.save(ledger);
     }
 

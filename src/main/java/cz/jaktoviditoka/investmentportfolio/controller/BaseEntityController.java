@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -60,14 +61,24 @@ public class BaseEntityController {
         Asset asset = assetRepository.findByTicker(ticker)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
 
-        return AssetDto.builder()
-                .name(asset.getName())
-                .ticker(asset.getTicker())
-                .isin(asset.getIsin())
-                .type(asset.getType().name())
-                .nominalPriceAsset(asset.getNominalPriceAsset().getTicker())
-                .nominalPrice(asset.getNominalPrice())
-                .build();
+        if (Objects.nonNull(asset.getNominalPriceAsset())) {
+            return AssetDto.builder()
+                    .name(asset.getName())
+                    .ticker(asset.getTicker())
+                    .isin(asset.getIsin())
+                    .type(asset.getType().name())
+                    .nominalPriceAsset(asset.getNominalPriceAsset().getTicker())
+                    .nominalPrice(asset.getNominalPrice())
+                    .build();
+        } else {
+            return AssetDto.builder()
+                    .name(asset.getName())
+                    .ticker(asset.getTicker())
+                    .isin(asset.getIsin())
+                    .type(asset.getType().name())
+                    .build();
+        }
+
     }
 
     @PostMapping("/asset")
@@ -87,10 +98,8 @@ public class BaseEntityController {
     }
 
     @PutMapping("/asset")
-    public void updateAsset(
-            @RequestParam String ticker,
-            @RequestBody AssetDto assetDto) {
-        Asset asset = assetRepository.findByTicker(ticker)
+    public void updateAsset( @RequestBody AssetDto assetDto) {
+        Asset asset = assetRepository.findByTicker(assetDto.getTicker())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Asset not found."));
 
         Asset nominalPriceAsset = assetRepository.findByTicker(assetDto.getNominalPriceAsset())

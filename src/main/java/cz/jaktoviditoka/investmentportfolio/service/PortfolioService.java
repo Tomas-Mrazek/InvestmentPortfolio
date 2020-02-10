@@ -12,9 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Transactional
@@ -26,6 +29,12 @@ public class PortfolioService {
 
     @Autowired
     ModelMapper modelMapper;
+
+    public List<PortfolioAssetPerDayResponse> getPortfolioPerDay(AppUser appuser, LocalDate date) {
+        return getPortfolioPerDay(appuser).stream()
+                .filter(el -> Objects.equals(el.getDate(), date))
+                .collect(Collectors.toList());
+    }
 
     @Transactional(readOnly = true)
     public List<PortfolioAssetPerDayResponse> getPortfolioPerDay(AppUser appuser) {
@@ -66,5 +75,5 @@ public class PortfolioService {
     public BigDecimal value(AppUser appuser) {
         return portfolio.value(appuser);
     }
-    
+
 }
