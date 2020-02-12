@@ -40,6 +40,14 @@ public class PriceService {
         }
         return List.of();
     }
+    
+    @Transactional(readOnly = true)
+    public List<PriceDto> getPrice(LocalDate date) {
+            List<Price> prices = pricePrice.findByDate(date);
+            return prices.stream()
+                    .map(map -> modelMapper.map(map, PriceDto.class))
+                    .collect(Collectors.toList());
+    }
 
     @Transactional(readOnly = true)
     public List<PriceDto> getPrice(String ticker, LocalDate date) {

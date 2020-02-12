@@ -16,6 +16,8 @@ public interface PriceRepository extends JpaRepository<Price, Long> {
 
     List<Price> findByAsset(Asset asset);
     
+    List<Price> findByDate(LocalDate date);
+    
     List<Price> findByAssetAndDate(Asset asset, LocalDate date);
     
     List<Price> findByAssetAndExchange(Asset asset, Exchange exchange);
