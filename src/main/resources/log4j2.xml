@@ -24,7 +24,7 @@
         <logger name="org.flywaydb" level="error" additivity="false">
             <AppenderRef ref="Console" />
         </logger>
-        <Logger name="cz.jaktoviditoka" level="trace" additivity="false">
+        <Logger name="cz.tomastokamrazek" level="trace" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
         <Root level="error">
