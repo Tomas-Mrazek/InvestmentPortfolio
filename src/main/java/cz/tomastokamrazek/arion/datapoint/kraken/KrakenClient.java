@@ -1,19 +1,14 @@
 package cz.tomastokamrazek.arion.datapoint.kraken;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Instant;
 import java.util.Base64;
-
-import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -26,7 +21,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
 import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponse;
-import lombok.extern.slf4j.Slf4j;
+import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponseAssetInfo;
 
 @Component
 public class KrakenClient {
@@ -35,17 +30,26 @@ public class KrakenClient {
 	private static final String PRIVATE_KEY = "kraken.private.key";	
 	
 	private static final String KRAKEN_API_HOST = "https://api.kraken.com";
-	private static final String KRAKEN_API_PATH = "/0/private";
 	
 	@Autowired
 	Environment enviornment;
 	
     @Autowired
     RestTemplate restTemplate;
+    
+	public ResponseEntity<KrakenResponseAssetInfo> getAssetInfo() {
+        URI uri = UriComponentsBuilder.fromHttpUrl(KRAKEN_API_HOST)
+                .path("/0/public")
+                .path("/Assets")
+                .build()
+                .toUri();
+        
+        return restTemplate.exchange(uri, HttpMethod.GET, null, KrakenResponseAssetInfo.class);
+	}
 	
 	public ResponseEntity<String> getAccountBalance() {
         URI uri = UriComponentsBuilder.fromHttpUrl(KRAKEN_API_HOST)
-                .path(KRAKEN_API_PATH)
+                .path("/0/private")
                 .path("/Balance")
                 .build()
                 .toUri();
@@ -57,7 +61,7 @@ public class KrakenClient {
 	
 	public ResponseEntity<String> getTradeBalance() {
         URI uri = UriComponentsBuilder.fromHttpUrl(KRAKEN_API_HOST)
-                .path(KRAKEN_API_PATH)
+                .path("/0/private")
                 .path("/TradeBalance")
                 .build()
                 .toUri();
@@ -69,7 +73,7 @@ public class KrakenClient {
 	
 	public ResponseEntity<KrakenResponse> getTradesHiostry() {
         URI uri = UriComponentsBuilder.fromHttpUrl(KRAKEN_API_HOST)
-                .path(KRAKEN_API_PATH)
+                .path("/0/private")
                 .path("/TradesHistory")
                 .build()
                 .toUri();
@@ -81,7 +85,7 @@ public class KrakenClient {
 	
 	public ResponseEntity<KrakenResponse> getLedgersInfo() {
         URI uri = UriComponentsBuilder.fromHttpUrl(KRAKEN_API_HOST)
-                .path(KRAKEN_API_PATH)
+                .path("/0/private")
                 .path("/Ledgers")
                 .build()
                 .toUri();

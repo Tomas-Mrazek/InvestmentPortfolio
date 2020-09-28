@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponse;
+import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponseAssetInfo;
 
 @RestController
 @RequestMapping("/external/kraken")
@@ -14,7 +15,12 @@ public class KrakenController {
 
 	@Autowired
 	KrakenClient client;
-    
+	
+    @GetMapping("/asset-info")
+    public ResponseEntity<KrakenResponseAssetInfo> getAssetInfo() {
+        return client.getAssetInfo();
+    }
+	
     @GetMapping("/account-balance")
     public ResponseEntity<String> getAccountBalance() {
         return client.getAccountBalance();

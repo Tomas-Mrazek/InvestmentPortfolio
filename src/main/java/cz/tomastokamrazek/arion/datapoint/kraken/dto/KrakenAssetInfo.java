@@ -8,9 +8,18 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class KrakenResponse {
+public class KrakenAssetInfo {
 
-	@JsonProperty("result")
-	KrakenResult result;
+	@JsonProperty("aclass")
+	String aclass;
+	
+	@JsonProperty("altname")
+	String altName;
+	
+	@JsonProperty("decimals")
+	Integer decimals;
+	
+	@JsonProperty("display_decimals")
+	Integer displayDecimals;
 	
 }

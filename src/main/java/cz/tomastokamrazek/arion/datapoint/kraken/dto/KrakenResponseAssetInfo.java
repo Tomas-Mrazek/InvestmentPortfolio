@@ -1,5 +1,7 @@
 package cz.tomastokamrazek.arion.datapoint.kraken.dto;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AccessLevel;
@@ -8,9 +10,9 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class KrakenResponse {
+public class KrakenResponseAssetInfo {
 
 	@JsonProperty("result")
-	KrakenResult result;
+	public Map<String, KrakenAssetInfo> result;
 	
 }
