@@ -45,10 +45,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers("/users/register").permitAll()
                 .antMatchers("/h2-console/**").permitAll()
+                .antMatchers("/external/**").permitAll()
                 .antMatchers("/**").authenticated()
                 .and()
                 .httpBasic();
-                
     }
 
 }

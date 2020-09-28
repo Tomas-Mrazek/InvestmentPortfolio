@@ -5,7 +5,10 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] [%-5level] %logger{36} - %msg%n" />
         </Console>
     </Appenders>
-    <Loggers>
+    <Loggers>    
+    	<Logger name="org.apache.http.wire" level="error" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
         <Logger name="org.springframework.security" level="error" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
