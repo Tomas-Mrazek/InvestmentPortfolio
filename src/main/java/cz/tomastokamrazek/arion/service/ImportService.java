@@ -11,7 +11,10 @@ import cz.tomastokamrazek.arion.model.*;
 import cz.tomastokamrazek.arion.repository.AssetRepository;
 import cz.tomastokamrazek.arion.repository.ExchangeRepository;
 import cz.tomastokamrazek.arion.repository.PriceRepository;
+import cz.tomastokamrazek.arion.service.external.CoinmarketcapService;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -39,6 +42,9 @@ public class ImportService {
 
     @Autowired
     PriceRepository priceRepository;
+    
+    @Autowired
+    CoinmarketcapService coinmarketcapService;
 
     @Autowired
     KurzyCzClient kurzyCzClient;
@@ -55,11 +61,19 @@ public class ImportService {
     private static final LocalDate BCPP_INIT_DATE = LocalDate.of(2001, 10, 1);
     private static final LocalDate FIO_FOREX_INIT_DATE = LocalDate.of(2003, 01, 02);
     private static final String PRICE_ASSET = "CZK";
-
+    
     @Transactional
-    public void importCurrencies() {
+    public void importAssets() {
+    	importCurrencies();
+    	coinmarketcapService.importAssets();
+    }
+    
+    private void importCurrencies() {
+		List<Asset> existingAssets = assetRepository.findAll();
+    	
         Set<Currency> currencies = Currency.getAvailableCurrencies();
-        List<Asset> assets = currencies.stream()
+        
+        List<Asset> newAssets = currencies.stream()
                 .map(map -> {
                     return Asset.builder()
                             .name(map.getDisplayName(Locale.ENGLISH))
@@ -67,9 +81,11 @@ public class ImportService {
                             .type(AssetType.CURRENCY)
                             .build();
                 })
-                .collect(Collectors.toList());
-        log.debug("Saving {} currencies to database...", assets.size());
-        assetRepository.saveAll(assets);
+    			.filter(el -> BooleanUtils.isFalse(existingAssets.contains(el)))
+    			.collect(Collectors.toList());
+
+        log.debug("Saving {} currencies to database...", newAssets.size());
+        assetRepository.saveAll(newAssets);
         log.debug("Done...");
     }
 

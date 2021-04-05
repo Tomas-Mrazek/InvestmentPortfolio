@@ -16,8 +16,7 @@ import javax.persistence.*;
 public class TransactionMovement {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transaction_movement_generator")
-    @SequenceGenerator(name="transaction_movement_generator", sequenceName = "transaction_movement_id_seq", allocationSize = 20)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)

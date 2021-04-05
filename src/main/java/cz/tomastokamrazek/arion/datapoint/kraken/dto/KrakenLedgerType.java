@@ -17,7 +17,10 @@ public enum KrakenLedgerType {
 	DEPOSIT("deposit"),
 	
 	@JsonProperty("trade")
-	TRADE("trade");
+	TRADE("trade"),
+	
+	@JsonProperty("margin")
+	MARGIN("margin");
 	
 	String value;
 	

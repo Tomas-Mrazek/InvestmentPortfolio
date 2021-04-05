@@ -16,7 +16,7 @@ public class KrakenLedger {
 	String refId;
 	
 	@JsonProperty("time")
-	Double time;
+	BigDecimal time;
 	
 	@JsonProperty("type")
 	KrakenLedgerType type;

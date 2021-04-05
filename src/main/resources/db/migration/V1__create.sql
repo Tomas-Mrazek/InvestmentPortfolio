@@ -30,9 +30,8 @@ CREATE TABLE asset (
     nominal_price_asset_id BIGINT,
 
     PRIMARY KEY (id),
-    UNIQUE (ticker),
     UNIQUE (isin),
-    UNIQUE (name, ticker, isin, type)
+    UNIQUE (name, type)
 );
 
 CREATE TABLE exchange (

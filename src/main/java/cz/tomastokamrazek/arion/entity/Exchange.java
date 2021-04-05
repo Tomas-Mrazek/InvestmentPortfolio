@@ -17,8 +17,7 @@ import javax.persistence.*;
 public class Exchange {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "exchange_generator")
-    @SequenceGenerator(name="exchange_generator", sequenceName = "exchange_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
     @Column(nullable = false, unique = true)

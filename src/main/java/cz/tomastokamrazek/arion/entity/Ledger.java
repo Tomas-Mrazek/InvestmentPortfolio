@@ -17,8 +17,7 @@ import javax.persistence.*;
 public class Ledger {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ledger_generator")
-    @SequenceGenerator(name="ledger_generator", sequenceName = "ledger_id_seq", allocationSize = 20)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
     @Column(nullable = false)

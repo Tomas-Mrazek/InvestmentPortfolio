@@ -1,0 +1,39 @@
+{
+	"folders": {},
+	"connections": {
+		"postgres-jdbc-174e1766bae-e96ab84509338e8": {
+			"provider": "postgresql",
+			"driver": "postgres-jdbc",
+			"name": "portfolio",
+			"save-password": true,
+			"show-system-objects": true,
+			"read-only": false,
+			"configuration": {
+				"host": "wso2db.jaktoviditoka.cz",
+				"port": "5432",
+				"database": "portfolio",
+				"url": "jdbc:postgresql://wso2db.jaktoviditoka.cz:5432/portfolio",
+				"type": "dev",
+				"provider-properties": {
+					"@dbeaver-show-non-default-db@": "false",
+					"@dbeaver-show-template-db@": "false",
+					"@dbeaver-show-unavailable-db@": "false",
+					"postgresql.dd.plain.string": "false",
+					"postgresql.dd.tag.string": "false"
+				},
+				"auth-model": "native",
+				"handlers": {}
+			}
+		}
+	},
+	"connection-types": {
+		"dev": {
+			"name": "Development",
+			"color": "255,255,255",
+			"description": "Regular development database",
+			"auto-commit": true,
+			"confirm-execute": false,
+			"confirm-data-change": false
+		}
+	}
+}

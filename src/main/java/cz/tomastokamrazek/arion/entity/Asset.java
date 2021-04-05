@@ -14,13 +14,12 @@ import javax.persistence.*;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Table(uniqueConstraints = { @UniqueConstraint(columnNames = { "name", "ticker", "isin", "type" }) })
+@Table(uniqueConstraints = { @UniqueConstraint(columnNames = { "name", "type" }) })
 @Entity
 public class Asset {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "asset_generator")
-    @SequenceGenerator(name="asset_generator", sequenceName = "asset_id_seq", allocationSize = 20)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
     @EqualsAndHashCode.Include
@@ -28,7 +27,7 @@ public class Asset {
     String name;
 
     @EqualsAndHashCode.Include
-    @Column(nullable = true, unique = true)
+    @Column(nullable = true)
     String ticker;
 
     @EqualsAndHashCode.Include

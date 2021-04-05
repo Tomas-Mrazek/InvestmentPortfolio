@@ -19,8 +19,7 @@ import javax.persistence.*;
 public class Price {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "price_generator")
-    @SequenceGenerator(name="price_generator", sequenceName = "price_id_seq", allocationSize = 100)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
     @EqualsAndHashCode.Include

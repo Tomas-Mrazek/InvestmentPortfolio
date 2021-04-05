@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,9 +32,9 @@ public class ImportController {
     @Autowired
     ImportService importService;
 
-    @GetMapping("/currencies")
-    public void importCurrencies() {
-        importService.importCurrencies();
+    @PostMapping("/assets")
+    public void importAssets() {
+        importService.importAssets();
     }
 
     @GetMapping("/kurzycz/to-file")

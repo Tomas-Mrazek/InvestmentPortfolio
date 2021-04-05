@@ -16,8 +16,7 @@ import javax.persistence.*;
 public class CookieCache {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cookie_cache_generator")
-    @SequenceGenerator(name="cookie_cache_generator", sequenceName = "cookie_cache_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     
     @CreatedDate

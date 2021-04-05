@@ -1,5 +1,6 @@
 package cz.tomastokamrazek.arion.config;
 
+import com.fasterxml.jackson.core.JsonGenerator.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -9,6 +10,7 @@ import cz.tomastokamrazek.arion.entity.TransactionMovement;
 import org.flywaydb.core.Flyway;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +25,7 @@ import javax.sql.DataSource;
 
 @EnableAsync
 @EnableScheduling
+@EnableCaching
 @EnableJpaAuditing
 @EnableJpaRepositories(basePackages = "cz.tomastokamrazek.arion.repository")
 @Configuration
@@ -42,6 +45,7 @@ public class Config {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.enable(Feature.WRITE_BIGDECIMAL_AS_PLAIN);
         return mapper;
     }
     

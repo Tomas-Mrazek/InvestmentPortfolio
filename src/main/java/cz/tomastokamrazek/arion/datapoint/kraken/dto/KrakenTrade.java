@@ -22,7 +22,7 @@ public class KrakenTrade {
 	String pair;
 	
 	@JsonProperty("time")
-	Double time;
+	BigDecimal time;
 	
 	@JsonProperty("type")
 	KrakenTradeType type;

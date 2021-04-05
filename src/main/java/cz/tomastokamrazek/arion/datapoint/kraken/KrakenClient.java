@@ -20,19 +20,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
+import cz.tomastokamrazek.arion.config.SecretsConfig;
 import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponse;
 import cz.tomastokamrazek.arion.datapoint.kraken.dto.KrakenResponseAssetInfo;
 
 @Component
 public class KrakenClient {
-
-	private static final String API_KEY = "kraken.api.key";
-	private static final String PRIVATE_KEY = "kraken.private.key";	
 	
 	private static final String KRAKEN_API_HOST = "https://api.kraken.com";
 	
 	@Autowired
-	Environment enviornment;
+	SecretsConfig secrets;
 	
     @Autowired
     RestTemplate restTemplate;
@@ -96,7 +94,7 @@ public class KrakenClient {
 	}
 	
 	private HttpEntity<MultiValueMap<String, String>> prepareRequest(URI uri) {
-        byte[] apiSecret = Base64.getDecoder().decode(enviornment.getProperty(PRIVATE_KEY));
+        byte[] apiSecret = Base64.getDecoder().decode(secrets.getKrakenPrivateKey());
         String apiPath = uri.getPath();
         String apiNonce = Long.toString(generateNonce());
         String apiPostData = new StringBuilder()
@@ -116,7 +114,7 @@ public class KrakenClient {
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.add("API-Key", enviornment.getProperty(API_KEY));
+        headers.add("API-Key", secrets.getKrakenApiKey());
         headers.add("API-Sign", apiSign);
         
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
